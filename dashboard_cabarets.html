@@ -386,7 +386,7 @@ IMPORTANT : Réponds uniquement en JSON avec cette structure exacte, sans backti
 }`;
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch("https://archive-dashboard-cabaret.garancefrr.workers.dev/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
