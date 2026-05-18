@@ -397,7 +397,9 @@ IMPORTANT : Réponds uniquement en JSON avec cette structure exacte, sans backti
     });
 
     const data = await response.json();
-    const text = data.content.map(i => i.text || "").join("");
+    console.log("data brut :", JSON.stringify(data));
+if(!data.content) throw new Error("Réponse invalide : " + JSON.stringify(data).slice(0,300));
+const text = data.content.map(i => i.text || "").join("");
 
     let parsed;
 try {
