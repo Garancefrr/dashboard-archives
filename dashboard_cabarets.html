@@ -396,7 +396,10 @@ IMPORTANT : Réponds uniquement en JSON avec cette structure exacte, sans backti
       })
     });
 
-    const data = await response.json();
+    const rawText = await response.text();
+console.log("Réponse brute worker :", rawText.slice(0,500));
+const data = JSON.parse(rawText);
+    
     console.log("data brut :", JSON.stringify(data));
 if(!data.content) throw new Error("Réponse invalide : " + JSON.stringify(data).slice(0,300));
 const text = data.content.map(i => i.text || "").join("");
