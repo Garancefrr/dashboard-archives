@@ -429,6 +429,7 @@ function renderAnalyse(wrap, data) {
   const axeColors = ["#f87171","#818cf8","#fb923c","#22d3ee"];
   const axeNumBg  = ["rgba(248,113,113,.15)","rgba(129,140,248,.15)","rgba(251,146,60,.15)","rgba(34,211,238,.15)"];
 
+  console.log("Réponse Claude :", JSON.stringify(data));
   const axesHTML = (data.axes||[]).map((axe, i) => {
     const color  = axe.couleur || axeColors[i] || "#818cf8";
     const numBg  = axeNumBg[i] || "rgba(129,140,248,.15)";
