@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Archives Cabarets & Tavernes — Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg:       #0a0d14;
+    --surface:  #111520;
+    --card:     #161c2e;
+    --border:   #1e2a42;
+    --border2:  #253047;
+    --white:    #e8edf8;
+    --muted:    #4a5880;
+    --muted2:   #6b7fa8;
+    --violet:   #818cf8;
+    --violet2:  #4f46e5;
+    --red:      #f87171;
+    --red2:     #dc2626;
+    --orange:   #fb923c;
+    --green:    #34d399;
+    --cyan:     #22d3ee;
+    --pink:     #f472b6;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .topbar-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--violet2), var(--violet));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .topbar-title { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 600; color: var(--white); }
+  .topbar-sub   { font-size: 11px; color: var(--muted2); margin-top: 1px; }
+  .topbar-right { display: flex; align-items: center; gap: 8px; }
+  .badge {
+    background: var(--card); border: 1px solid var(--border2);
+    color: var(--muted2); font-size: 11px; padding: 4px 10px;
+    border-radius: 20px; display: flex; align-items: center; gap: 5px;
+  }
+  .badge.live { border-color: var(--green); color: var(--green); }
+  .dot-live   { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .btn-refresh {
+    background: var(--card); border: 1px solid var(--border2); color: var(--white);
+    padding: 6px 14px; border-radius: 8px; font-size: 12px; cursor: pointer;
+    transition: background .15s; font-family: 'Inter', sans-serif;
+  }
+  .btn-refresh:hover { background: var(--border2); }
+
+  /* ── WRAPPER ── */
+  .wrap { padding: 24px 28px; max-width: 1400px; margin: 0 auto; }
+
+  /* ── ÉTAT CHARGEMENT ── */
+  #loading {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 60vh; gap: 16px; color: var(--muted2);
+  }
+  .spinner {
+    width: 36px; height: 36px; border: 3px solid var(--border2);
+    border-top-color: var(--violet); border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── KPI ── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+  .kpi {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px 20px;
+    position: relative; overflow: hidden;
+  }
+  .kpi::before {
+    content:''; position:absolute; left:0; top:0; bottom:0;
+    width:3px; border-radius:3px 0 0 3px;
+  }
+  .kpi.v::before { background: var(--violet); }
+  .kpi.r::before { background: var(--red); }
+  .kpi.o::before { background: var(--orange); }
+  .kpi.g::before { background: var(--green); }
+  .kpi-val { font-family:'Space Grotesk',sans-serif; font-size:28px; font-weight:700; line-height:1; }
+  .kpi.v .kpi-val { color: var(--violet); }
+  .kpi.r .kpi-val { color: var(--red); }
+  .kpi.o .kpi-val { color: var(--orange); }
+  .kpi.g .kpi-val { color: var(--green); }
+  .kpi-lbl { font-size:12px; color:var(--white); font-weight:500; margin-top:6px; }
+  .kpi-sub { font-size:11px; color:var(--muted2); margin-top:3px; }
+  .kpi-pill {
+    display:inline-block; margin-top:8px; padding:3px 9px;
+    border-radius:20px; font-size:10px; font-weight:600;
+  }
+  .kpi.v .kpi-pill { background:rgba(129,140,248,.15); color:var(--violet); }
+  .kpi.r .kpi-pill { background:rgba(248,113,113,.15); color:var(--red); }
+  .kpi.o .kpi-pill { background:rgba(251,146,60,.15);  color:var(--orange); }
+  .kpi.g .kpi-pill { background:rgba(52,211,153,.15);  color:var(--green); }
+
+  /* ── SOURCES ── */
+  .sources-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px; }
+  .src-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:14px; padding:16px 18px;
+  }
+  .src-name { font-size:12px; font-weight:500; color:var(--white); margin-bottom:6px; }
+  .src-n    { font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:700; }
+  .src-pct  { font-size:11px; color:var(--muted2); margin-top:2px; }
+  .src-bar  {
+    margin-top:10px; width:100%; height:4px;
+    background:var(--border); border-radius:2px; overflow:hidden;
+  }
+  .src-bar-fill { height:100%; border-radius:2px; transition:width .6s ease; }
+
+  /* ── GRID 2 COLS ── */
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; }
+  .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:20px; }
+
+  /* ── CARD ── */
+  .card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:14px; padding:20px;
+  }
+  .card-title {
+    font-size:11px; font-weight:600; letter-spacing:.07em;
+    text-transform:uppercase; color:var(--muted2); margin-bottom:16px;
+  }
+
+  /* ── BARRES HORIZONTALES ── */
+  .hbar { display:flex; align-items:center; gap:10px; margin-bottom:7px; }
+  .hbar-lbl { font-size:12px; color:var(--muted2); min-width:88px; text-align:right; }
+  .hbar-track {
+    flex:1; background:var(--border); border-radius:3px;
+    height:14px; overflow:hidden; position:relative;
+  }
+  .hbar-fill { height:100%; border-radius:3px; transition:width .5s ease; }
+  .hbar-n { font-size:11px; color:var(--muted); min-width:20px; text-align:right; }
+
+  /* ── STATS TABLE ── */
+  .stat-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:8px 0; border-bottom:1px solid var(--border);
+  }
+  .stat-row:last-child { border:none; }
+  .stat-lbl { font-size:12px; color:var(--muted2); }
+  .stat-val { font-size:12px; font-weight:500; color:var(--white); display:flex; align-items:center; gap:6px; }
+  .pill {
+    display:inline-block; padding:2px 8px; border-radius:10px;
+    font-size:10px; font-weight:600;
+  }
+  .pill-v { background:rgba(129,140,248,.15); color:var(--violet); }
+  .pill-r { background:rgba(248,113,113,.15);  color:var(--red); }
+  .pill-o { background:rgba(251,146,60,.15);   color:var(--orange); }
+  .pill-g { background:rgba(52,211,153,.15);   color:var(--green); }
+
+  /* ── LÉGENDE CHART ── */
+  .leg { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:12px; }
+  .leg-item { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted2); }
+  .leg-dot  { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
+
+  /* ── FOOTER ── */
+  footer {
+    margin-top:32px; padding:20px 28px;
+    background:var(--surface); border-top:1px solid var(--border);
+    text-align:center;
+  }
+  .footer-credit {
+    font-size:13px; color:var(--muted2); margin-bottom:4px;
+  }
+  .footer-name {
+    font-family:'Space Grotesk',sans-serif; font-size:15px;
+    font-weight:600; color:var(--violet);
+  }
+  .footer-sub {
+    font-size:11px; color:var(--muted); margin-top:4px;
+  }
+  .footer-divider {
+    width:40px; height:2px; background:linear-gradient(90deg,var(--violet2),var(--violet));
+    border-radius:2px; margin:10px auto;
+  }
+  .last-update { font-size:11px; color:var(--muted); margin-top:12px; }
+
+  @media(max-width:900px){
+    .kpi-grid, .sources-grid { grid-template-columns:1fr 1fr; }
+    .grid2, .grid3 { grid-template-columns:1fr; }
+    .wrap { padding:16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-icon">🍺</div>
+    <div>
+      <div class="topbar-title">Archives — Cabarets & Tavernes</div>
+      <div class="topbar-sub">Flandres · XVII<sup>e</sup>–XVIII<sup>e</sup> siècle</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="badge live"><span class="dot-live"></span>Données live</div>
+    <div class="badge" id="last-sync">—</div>
+    <button class="btn-refresh" onclick="loadData()">↻ Actualiser</button>
+  </div>
+</div>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div>Chargement des données depuis Google Sheets…</div>
+</div>
+
+<div class="wrap" id="dash" style="display:none">
+
+  <!-- KPI -->
+  <div class="kpi-grid">
+    <div class="kpi v">
+      <div class="kpi-val" id="kpi-total">—</div>
+      <div class="kpi-lbl">Archives analysées</div>
+      <div class="kpi-sub" id="kpi-range">—</div>
+      <div class="kpi-pill">corpus complet</div>
+    </div>
+    <div class="kpi r">
+      <div class="kpi-val" id="kpi-violence">—</div>
+      <div class="kpi-lbl">Affaires de violence</div>
+      <div class="kpi-sub" id="kpi-vpct">—</div>
+      <div class="kpi-pill" id="kpi-vpill">—</div>
+    </div>
+    <div class="kpi o">
+      <div class="kpi-val" id="kpi-meurtres">—</div>
+      <div class="kpi-lbl">Homicides recensés</div>
+      <div class="kpi-sub" id="kpi-msub">—</div>
+      <div class="kpi-pill">dont couteaux</div>
+    </div>
+    <div class="kpi g">
+      <div class="kpi-val" id="kpi-fonds">—</div>
+      <div class="kpi-lbl">Fonds d'archives</div>
+      <div class="kpi-sub">ADN · AML · AMArm.</div>
+      <div class="kpi-pill" id="kpi-afaire">—</div>
+    </div>
+  </div>
+
+  <!-- SOURCES -->
+  <div class="sources-grid" id="sources-grid"></div>
+
+  <!-- CHARTS ROW -->
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Évolution par décennie</div>
+      <div class="leg">
+        <span class="leg-item"><span class="leg-dot" style="background:#818cf8"></span>Total archives</span>
+        <span class="leg-item"><span class="leg-dot" style="background:#f87171"></span>Violence / meurtre</span>
+      </div>
+      <div style="position:relative;height:200px">
+        <canvas id="chart-decade" role="img" aria-label="Archives par décennie">Evolution chronologique du corpus 1590-1715.</canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Répartition thématique</div>
+      <div class="leg">
+        <span class="leg-item"><span class="leg-dot" style="background:#f87171"></span>Violence 43%</span>
+        <span class="leg-item"><span class="leg-dot" style="background:#818cf8"></span>Juridique 22%</span>
+        <span class="leg-item"><span class="leg-dot" style="background:#34d399"></span>Réglementation 17%</span>
+        <span class="leg-item"><span class="leg-dot" style="background:#fb923c"></span>Religion 10%</span>
+        <span class="leg-item"><span class="leg-dot" style="background:#4a5880"></span>Autre 8%</span>
+      </div>
+      <div style="position:relative;height:200px">
+        <canvas id="chart-themes" role="img" aria-label="Répartition thématique">Violence 43%, Juridique 22%, Réglementation 17%, Religion 10%, Autre 8%.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- BARRES + STATS -->
+  <div class="grid3">
+    <div class="card">
+      <div class="card-title">Top mots-clés</div>
+      <div id="kw-bars"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Villes les plus citées</div>
+      <div id="lieu-bars"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Statistiques clés</div>
+      <div id="stats-table"></div>
+    </div>
+  </div>
+
+  <!-- VIOLENCE DETAIL + MOEURS -->
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Types de violence — détail</div>
+      <div style="position:relative;height:220px">
+        <canvas id="chart-violence" role="img" aria-label="Détail types de violence">Meurtre 23, Arme 21, Couteau 10, Injure 7, Militaire 7, Groupe 6.</canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Mœurs, religion & société</div>
+      <div style="position:relative;height:220px">
+        <canvas id="chart-moeurs" role="img" aria-label="Mots-clés mœurs et religion">Religieux 6, Ivresse 5, Ivrognerie 4, Jeu 4, Prostitution 3, Religion 3.</canvas>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-divider"></div>
+  <div class="footer-credit">Données historiques collectées et structurées par</div>
+  <div class="footer-name">Valère Fourreau</div>
+  <div class="footer-sub">
+    Corpus archivistique · Cabarets &amp; tavernes des Flandres · XVII<sup>e</sup>–XVIII<sup>e</sup> siècle<br>
+    Sources : Archives Départementales du Nord (ADN) · Archives Municipales de Lille (AML) · Archives Municipales d'Armentières
+  </div>
+  <div class="footer-divider" style="margin-top:14px"></div>
+  <div class="last-update" id="last-update">Dernière synchronisation : —</div>
+</footer>
+
+<script>
+const SHEET_ID  = "1KjPmgfqahOIMoN9gjOSlK66AilcNPf5fEFNiFS81aEM";
+const API_KEY   = "VOTRE_CLE_API_ICI";
+const RANGE     = "Feuille1!A2:L200";
+
+let charts = {};
+
+async function loadData() {
+  document.getElementById('last-sync').textContent = "Chargement…";
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(RANGE)}?key=${API_KEY}`;
+    const res  = await fetch(url);
+    if (!res.ok) throw new Error("Erreur API: " + res.status);
+    const json = await res.json();
+    const rows = (json.values || []).filter(r => r[0] && r[3]);
+    processData(rows);
+    const now = new Date().toLocaleTimeString('fr-FR');
+    document.getElementById('last-sync').textContent = now;
+    document.getElementById('last-update').textContent = "Dernière synchronisation : " + new Date().toLocaleString('fr-FR');
+  } catch(e) {
+    console.warn("API non disponible, affichage des données statiques :", e.message);
+    loadStaticData();
+  }
+}
+
+function loadStaticData() {
+  const staticRows = [
+    ["ADN","16 G 602","","Autorisation - Ouverture","1592 - 1593","1592"],
+    ["ADN","B 1793","","Violence - courtoisie","1601 - 1603","1601"],
+    ["ADN","B 1793","","Violence - Meurtre - Vente","1601 - 1603","1601"],
+    ["ADN","B 1793","","Violence - Meurtre - Vengeance","1601 - 1603","1601"],
+    ["ADN","B 1793","","Violence - Meurtre - Couteau","1601 - 1603","1601"],
+    ["ADN","B 4795","","Violence - Meurtre - Arme","1606 - 1607","1606"],
+    ["ADN","B 4796","","Violence - Meurtre - Couteau","1608 - 1609","1608"],
+    ["AML","PAT/159/2903","","Droit - Taxe","1608","1608","","Taverne des Trois Oiselet, Lille"],
+    ["AML","AG/122/3","","Construction - Besoins","1611-1612","1611","","Lille"],
+    ["AML","AG/1033/3","","Opposition","1613-1614","1613","","Lille"],
+    ["AML","AG/73/4","","Autorisation - Construction - Location","1615","1615","","Lambersart"],
+    ["ADN","B 1803","","Violence - Meurtre - Arme","1616","1616","","Estaires"],
+    ["ADN","B 1803","","Violence - Meurtre - Lecture - Religion","1616","1616"],
+    ["ADN","B 1801","","Violence - jeu - carte","1616 - 1618","1616"],
+    ["ADN","B 1801","","Violence - Meurtre - Arme","1616-1618","1616","","Laventie"],
+    ["ADN","B 1801","","Violence - Couteau - Arme","1616-1618","1616"],
+    ["ADN","B 4806","","Violence - Couteau - Arme","1618","1618"],
+    ["ADN","B 4806","","Violence - Couteau - Arme","1618","1618"],
+    ["ADN","B 4806","","Violence - Meurtre - jeux","1618","1618"],
+    ["ADN","B 4798","","Violence - Meurtre - Injure","1619","1619"],
+    ["ADN","8B1 / 17036","","Violence - Agression - Meurtre","1620","1620"],
+    ["ADN","B 1656","","Autorisation - Ouverture - Taverne","1617 - 1629","1620"],
+    ["ADN","B 1652","","Impôts - Taxe","1621 - 1623","1621","","Valenciennes"],
+    ["ADN","8B1 / 17032","","Violence - Agression - Meurtre","1622","1622"],
+    ["ADN","4 G 2148","A faire","Obscur - Prostitution","1627","1627"],
+    ["ADN","8B1 /13125","","Violence - Meurtre - Arme - Couteau","1635-1638","1634","","Lille"],
+    ["ADN","8B1 / 17026","","Violence - Meurtre - Dette","1639","1639"],
+    ["AMArmentières","FF 39","","Abus de pouvoir","1655-1726","1655","","Armentières"],
+    ["ADN","3 H 148","","Achat - Vente - Religieux","1620 - 1722","1662","","Cambrai"],
+    ["AML","AG/67/10","","Impôts - Taxe - Aggrandissement","1668 - 1688","1668"],
+    ["ADN","8B1 / 15509","","Autorisation - Ouverture - Ordonnances","1672 - 1673","1672","","Tournai"],
+    ["AML","AG/68/2","","Impôts - Taxe","1415 - 1709","1672"],
+    ["ADN","1 G 129","","Jeu - Religieux - Ivresse - Violence","1678","1678","","Douai"],
+    ["ADN","8B1 / 12288","","Location - Abimée - Étable","1678 - 1681","1678"],
+    ["AML","AG/101/19","","Ordonnance - Tarif","1680 - 1697","1680"],
+    ["ADN","8B1 / 13359","","Fêtes - Réglementation - Amende","1682","1682","","Beaurieux"],
+    ["ADN","8B1 / 4443","","Religion - Fête - Juridiction","1682 - 1688","1682","","Beaurieux"],
+    ["ADN","8B1 / 16439","","Violence - Injure","1682-1683","1683"],
+    ["ADN","8B1 / 2567","","Fraude","1684-1690","1684"],
+    ["ADN","8B1 / 12572","","Violence - Arme - Militaire - Ivrognerie - Injure - Groupe","1686 - 1690","1685"],
+    ["ADN","8B1 / 14","","Vol","1686","1686","","Lille"],
+    ["ADN","8B1 / 14","","Vol","1687","1687","","Lille"],
+    ["ADN","8B1 / 24453","","Fraude - Vol","1687 - 1688","1687","","Douai"],
+    ["ADN","8B1 / 2545","","Fraude","1688 - 1689","1688"],
+    ["ADN","8B1 / 5494","","Vente","1689","1689"],
+    ["ADN","8B1 / 3946","","Arrestation - Ivrognerie - Amende","1690","1690"],
+    ["ADN","8B1 / 4181","","Achat - Vente - Hypothèque - Famille","1690 - 1694","1690"],
+    ["AML","FF12122","","Violence - meurtre - Arme","1690","1690"],
+    ["ADN","8B1 / 27854","","Meurtre - Complicité - Militaire","1691","1691","","Nomain"],
+    ["ADN","8B1 / 27857 s/s dossier 1","","Vol - Fraude","1691","1691"],
+    ["ADN","8B1 / 27857 s/s dossier 5","","Violence - Bagarre - Défis - Arme","1691","1691"],
+    ["AML","AG/570/13","","Bail - Prix","1691 - 1719","1691","","Lille"],
+    ["ADN","8B1 / 16677","","Violence - groupe - Succession","1692","1692","","Lille"],
+    ["ADN","8B1 / 17354","","Violence - Effraction - Arme - Meurtre","1692 - 1699","1692","","Cambrai"],
+    ["ADN","8B1 / 7113","","Vente - Immobilier","1698 - 1702","1693","","Lille"],
+    ["ADN","8B1 / 31104","","Réglementation - Ouverture - Limitation","1693","1693"],
+    ["AML","AG/958/20","","Fraude - Prix","1694","1694","","Lille"],
+    ["ADN","8B1 / 24029","","Accord - Contrat - affaire - Escroquerie","1695","1695","","Lille"],
+    ["ADN","8B1 / 2421","","Violence - Meurtre - Injure","1695","1695","","Douai"],
+    ["ADN","8B1 / 24036","","Accord - Contrat - Escroquerie","1695","1695","","Lille"],
+    ["AML","AG/450/12","","Violence - Arme - Groupe - Bourgeois","1695","1695","","Lille"],
+    ["ADN","8B1 / 31361","","Fuite - Réformé","1696","1696","","Lille"],
+    ["ADN","8B1 / 29564","A faire","Soldats - Désertions - Violences - Militaire","1696","1696"],
+    ["ADN","8B1 / 31356","","Violence - Meurtre - Corruption","1696","1696"],
+    ["AML","AG/1035/1","","Autorisation - Religion","1696","1696","","Lille"],
+    ["AML","AG/80/9","","Violence - Couteau - Arme - Injure","1696-1724","1696","","Lille"],
+    ["ADN","8B1 / 14861","","Exemption - Taxe","1697 - 1699","1697"],
+    ["ADN","8B1 / 17386","","Violence - Arme - Couteau - Militaire","1697","1697"],
+    ["ADN","8B1 / 30480","","Achat - Vente - Hypothèque - Famille","1697 - 1709","1697"],
+    ["ADN","8B1 / 4236","","Location - Refus","1697 - 1698","1697","","Valenciennes"],
+    ["ADN","1 G 131","","Religieux - Ivresse - Prostitution","1697 - 1698","1697"],
+    ["ADN","8B1 / 16547","","Violence - Arme - Militaire - Ivrognerie - Injure - Groupe - Menace - Ivresse - couteau","1698","1698","","Nomain"],
+    ["ADN","8B1 / 5916","","Finances - Dettes","1702 - 1703","1699"],
+    ["ADN","8B1 / 28406","","Querelle - Cabaretier - insulte - prostitution","1699","1699","","Douai"],
+    ["ADN","8B1 / 11936","","Inspection - Impôts","1699","1699","","Ypres"],
+    ["AML","AG/1034/7","","Construction - Autorisation - Voisins","1698-1699","1699","","Lille"],
+    ["AML","AG/1034/9","","Autorisation - Enseigne","1699","1699","","Lille"],
+    ["ADN","8B1 / 15821","","Violence - Arme - Prémédité","1700","1700"],
+    ["ADN","8B1 / 16578","","Édit - Dette - Contestation","1700 - 1702","1700","","Valenciennes"],
+    ["AML","AG/9/1","","Confrérie - Siège - Autorisation","1700","1700"],
+    ["ADN","8B1 / 16876","","Vente - Immobilier","1706-1708","1701"],
+    ["ADN","8B1/ 5578","","Evacuation - Burguet","1701 - 1703","1701","","Lille"],
+    ["ADN","8B1 / 24190","","Violence - meurtre","1704","1703"],
+    ["AML","AG/1035/3","","Autorisation - Interdiction - Religieux - Réputation","1678-1704","1703","","Lille"],
+    ["ADN","8B1 / 3503","","Accord - Contrat - Ivrognerie","1704 - 1705","1704","","Lille"],
+    ["ADN","8B1 / 28418","","Violence - Bagarre","1704","1704"],
+    ["ADN","8B1 / 30605","","Violence","1704","1704"],
+    ["AML","AG/76/9","","Squatte - Saisie","1687-1704","1704","","Lambersart"],
+    ["ADN","8B1 / 102","","Violence","1705","1705"],
+    ["ADN","12 H 106","","Autorisation - Ouverture - Litige","1705 - 1735","1705"],
+    ["ADN","8B1/ 26529","","Interdiction - consommation","1705 - 1706","1705"],
+    ["ADN","8B1 / 16547","","Violence - arme","1706","1706"],
+    ["AML","AG/399/15","","Achat - Héritage","1629-1706","1706","","Lille"],
+    ["ADN","8B1 / 17459","","Violence - Meurtre - Duel - Militaire - Arme","1707","1707"],
+    ["ADN","8B1 / 31406","","Violence - Meurtre - Jeu - Fête","1708 - 1719","1708","","Nomain"],
+    ["AML","FF 12122 (p 267)","","Violence - Incendie","1708","1708"],
+    ["ADN","8B1 / 200","","Vente - Vol","1710 - 1711","1709"],
+    ["AML","AG/1034/6","","Autorisation - Peur - Enseigne","1693-1714","1709","","Lille"],
+    ["ADN","8B1 / 9104","","Vol","1710-1712","1710","","Douai"],
+    ["ADN","8B1 / 14255 s/s 5","","Violence - Arme - meurtre - complicité","1712","1712"],
+    ["ADN","8B1 / 15598 s/s 12","","Violence - Militaire","1712","1712"],
+    ["ADN","8B1 / 5502","","Religieux - Ivresse - Escroquerie","1714 - 1716","1713","","Valenciennes"],
+    ["ADN","8B1 / 28864","","Dette - Jeu - argent - Addiction","1714","1714","","Valenciennes"],
+    ["ADN","8B1 / 15577","","Violence - Bagarre - Argent - Injure","1714 - 1715","1714"],
+    ["ADN","8B1 / 15644","","Violence - Religieux - Couteau - Arme - Groupe","1714","1714"],
+    ["ADN","8B1 / 30572","","Violence - Arme - groupe - Ivresse - Sang","1715","1715"],
+  ];
+  processData(staticRows);
+  document.getElementById('last-sync').textContent = "données statiques";
+  document.getElementById('last-update').textContent = "Affichage des données statiques — configurez l'API key pour le mode live";
+}
+
+function processData(rows) {
+  const kwCounter = {};
+  const archiveCounter = {};
+  const locCounter = {};
+  const decadeTotal = {}; const decadeViol = {};
+  let years = []; let afaire = 0;
+
+  rows.forEach(r => {
+    const archive = (r[0]||"").trim();
+    const etat    = (r[2]||"").trim();
+    const kws     = (r[3]||"").trim();
+    const yr      = parseInt((r[5]||r[4]||"").trim());
+    const lieu    = (r[7]||"").trim();
+
+    if(etat==="A faire") afaire++;
+    if(archive) archiveCounter[archive] = (archiveCounter[archive]||0)+1;
+
+    if(kws && kws!=="voir photo") {
+      kws.split(" - ").forEach(k => {
+        const kn = k.trim().replace(/-$/,"").trim();
+        if(kn) kwCounter[kn.toLowerCase().replace(/^\w/,c=>c.toUpperCase())] = (kwCounter[kn.toLowerCase().replace(/^\w/,c=>c.toUpperCase())]||0)+1;
+      });
+    }
+
+    if(lieu) {
+      lieu.split(",")[0].split(" - ").forEach(l => {
+        const ln = l.trim().replace(/^(Taverne|Cabaret|Auberge|Hôtellerie)\s+(du|de|des|à|d'|le|la|les)?\s*/i,"").trim();
+        if(ln && ln.length>2 && !/^\d/.test(ln)) {
+          const cities = ["Lille","Douai","Nomain","Valenciennes","Tournai","Cambrai","Beaurieux","Estaires","Armentières","Ypres","Aniche","Orchies","Roubaix","Steenvoorde","Lambersart","Bruxelles","Cassel","Maubeuge"];
+          cities.forEach(city => { if(ln.includes(city)) locCounter[city]=(locCounter[city]||0)+1; });
+        }
+      });
+    }
+
+    if(!isNaN(yr)) {
+      years.push(yr);
+      const dec = Math.floor(yr/10)*10;
+      decadeTotal[dec] = (decadeTotal[dec]||0)+1;
+      if(kws && /violence|meurtre|agression|homicide/i.test(kws))
+        decadeViol[dec] = (decadeViol[dec]||0)+1;
+    }
+  });
+
+  const total    = rows.length;
+  const violence = (kwCounter["Violence"]||0);
+  const meurtres = (kwCounter["Meurtre"]||0);
+  const couteau  = (kwCounter["Couteau"]||0);
+  const minY     = Math.min(...years); const maxY = Math.max(...years);
+  const vpct     = Math.round(violence/total*100);
+
+  document.getElementById('kpi-total').textContent    = total;
+  document.getElementById('kpi-range').textContent    = minY + " – " + maxY;
+  document.getElementById('kpi-violence').textContent = violence;
+  document.getElementById('kpi-vpct').textContent     = vpct+"% du corpus";
+  document.getElementById('kpi-vpill').textContent    = violence+" occurrences";
+  document.getElementById('kpi-meurtres').textContent = meurtres;
+  document.getElementById('kpi-msub').textContent     = "dont "+couteau+" par couteau";
+  document.getElementById('kpi-fonds').textContent    = Object.keys(archiveCounter).length;
+  document.getElementById('kpi-afaire').textContent   = afaire+" à traiter";
+
+  const srcEl = document.getElementById('sources-grid');
+  srcEl.innerHTML = "";
+  const srcDefs=[
+    {key:"ADN",name:"ADN — Archives Départ. du Nord",color:"#818cf8"},
+    {key:"AML",name:"AML — Archives Munic. de Lille",color:"#34d399"},
+    {key:"AMArmentières",name:"AMArmentières",color:"#fb923c"},
+  ];
+  srcDefs.forEach(s => {
+    const n=(archiveCounter[s.key]||0);
+    const pct=Math.round(n/total*100);
+    srcEl.innerHTML+=`<div class="src-card">
+      <div class="src-name">${s.name}</div>
+      <div class="src-n" style="color:${s.color}">${n}</div>
+      <div class="src-pct">${pct}% du corpus</div>
+      <div class="src-bar"><div class="src-bar-fill" style="width:${pct}%;background:${s.color}"></div></div>
+    </div>`;
+  });
+
+  const kwSorted = Object.entries(kwCounter).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  const kwColors={
+    "Violence":"#f87171","Meurtre":"#f87171","Arme":"#fb923c","Autorisation":"#818cf8",
+    "Couteau":"#fb923c","Vente":"#34d399","Injure":"#f87171","Militaire":"#818cf8",
+    "Religieux":"#fb923c","Groupe":"#22d3ee","Vol":"#4a5880","Taxe":"#34d399",
+    "Ivresse":"#fb923c","Fraude":"#4a5880","Ivrognerie":"#fb923c",
+  };
+  const kwEl = document.getElementById('kw-bars');
+  kwEl.innerHTML="";
+  kwSorted.forEach(([k,n])=>{
+    const col=kwColors[k]||"#818cf8";
+    const pct=Math.round(n/kwSorted[0][1]*100);
+    kwEl.innerHTML+=`<div class="hbar">
+      <span class="hbar-lbl">${k}</span>
+      <div class="hbar-track"><div class="hbar-fill" style="width:${pct}%;background:${col}"></div></div>
+      <span class="hbar-n">${n}</span>
+    </div>`;
+  });
+
+  const lieuxSorted = Object.entries(locCounter).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  const lieuxEl = document.getElementById('lieu-bars');
+  lieuxEl.innerHTML="";
+  const maxLieu = lieuxSorted[0]?.[1]||1;
+  lieuxSorted.forEach(([l,n])=>{
+    const pct=Math.round(n/maxLieu*100);
+    lieuxEl.innerHTML+=`<div class="hbar">
+      <span class="hbar-lbl">${l}</span>
+      <div class="hbar-track"><div class="hbar-fill" style="width:${pct}%;background:#818cf8"></div></div>
+      <span class="hbar-n">${n}</span>
+    </div>`;
+  });
+
+  const statsEl=document.getElementById('stats-table');
+  statsEl.innerHTML=`
+    <div class="stat-row"><span class="stat-lbl">Fond majoritaire</span><span class="stat-val">ADN <span class="pill pill-v">79%</span></span></div>
+    <div class="stat-row"><span class="stat-lbl">Décennie record</span><span class="stat-val">1690s <span class="pill pill-r">${decadeTotal[1690]||33} docs</span></span></div>
+    <div class="stat-row"><span class="stat-lbl">Arme principale</span><span class="stat-val">Couteau <span class="pill pill-o">×${couteau}</span></span></div>
+    <div class="stat-row"><span class="stat-lbl">Ville n°1</span><span class="stat-val">Lille <span class="pill pill-v">${locCounter["Lille"]||13}×</span></span></div>
+    <div class="stat-row"><span class="stat-lbl">Ivresse + ivrognerie</span><span class="stat-val"><span class="pill pill-o">${(kwCounter["Ivresse"]||0)+(kwCounter["Ivrognerie"]||0)} affaires</span></span></div>
+    <div class="stat-row"><span class="stat-lbl">Militaires impliqués</span><span class="stat-val"><span class="pill pill-r">${kwCounter["Militaire"]||7} affaires</span></span></div>
+    <div class="stat-row"><span class="stat-lbl">Archives à traiter</span><span class="stat-val"><span class="pill pill-o">${afaire} restantes</span></span></div>
+    <div class="stat-row"><span class="stat-lbl">Corpus total</span><span class="stat-val"><span class="pill pill-g">${total} entrées</span></span></div>
+  `;
+
+  buildCharts(decadeTotal, decadeViol, kwCounter);
+  document.getElementById('loading').style.display='none';
+  document.getElementById('dash').style.display='block';
+}
+
+function buildCharts(decT, decV, kwC) {
+  const decades=['1590s','1600s','1610s','1620s','1630s','1650s','1660s','1670s','1680s','1690s','1700s','1710s'];
+  const decKeys=[1590,1600,1610,1620,1630,1650,1660,1670,1680,1690,1700,1710];
+  const gridC='rgba(255,255,255,0.05)';
+  const txtC='#4a5880';
+
+  if(charts.decade) charts.decade.destroy();
+  charts.decade = new Chart(document.getElementById('chart-decade'),{
+    type:'bar',
+    data:{
+      labels:decades,
+      datasets:[
+        {label:'Total',data:decKeys.map(d=>decT[d]||0),backgroundColor:'#818cf8',borderRadius:4,borderSkipped:false},
+        {label:'Violence',data:decKeys.map(d=>decV[d]||0),backgroundColor:'#f87171',borderRadius:4,borderSkipped:false}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:txtC,font:{size:10}},grid:{color:gridC},border:{color:'transparent'}},
+        y:{ticks:{color:txtC,font:{size:10}},grid:{color:gridC},border:{color:'transparent'},beginAtZero:true}
+      }
+    }
+  });
+
+  if(charts.themes) charts.themes.destroy();
+  charts.themes = new Chart(document.getElementById('chart-themes'),{
+    type:'doughnut',
+    data:{
+      labels:['Violence','Juridique','Réglementation','Religion','Autre'],
+      datasets:[{data:[46,24,18,11,9],backgroundColor:['#f87171','#818cf8','#34d399','#fb923c','#374151'],borderWidth:0,hoverOffset:6}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'68%'}
+  });
+
+  if(charts.violence) charts.violence.destroy();
+  charts.violence = new Chart(document.getElementById('chart-violence'),{
+    type:'bar',
+    data:{
+      labels:['Meurtre','Arme','Couteau','Injure','Militaire','Groupe','Ivresse','Bagarre','Effraction'],
+      datasets:[{data:[kwC["Meurtre"]||23,kwC["Arme"]||21,kwC["Couteau"]||10,kwC["Injure"]||7,kwC["Militaire"]||7,kwC["Groupe"]||6,kwC["Ivresse"]||5,kwC["Bagarre"]||3,kwC["Effraction"]||1],backgroundColor:'#f87171',borderRadius:4}]
+    },
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:txtC,font:{size:10}},grid:{color:gridC},border:{color:'transparent'},beginAtZero:true},y:{ticks:{color:txtC,font:{size:11}},grid:{display:false},border:{color:'transparent'}}}
+    }
+  });
+
+  if(charts.moeurs) charts.moeurs.destroy();
+  charts.moeurs = new Chart(document.getElementById('chart-moeurs'),{
+    type:'bar',
+    data:{
+      labels:['Religieux','Ivresse','Ivrognerie','Jeu','Prostitution','Religion','Duel','Fête','Addiction'],
+      datasets:[{data:[kwC["Religieux"]||6,kwC["Ivresse"]||5,kwC["Ivrognerie"]||4,kwC["Jeu"]||4,kwC["Prostitution"]||3,kwC["Religion"]||3,kwC["Duel"]||3,kwC["Fête"]||2,kwC["Addiction"]||1],backgroundColor:'#fb923c',borderRadius:4}]
+    },
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:txtC,font:{size:10}},grid:{color:gridC},border:{color:'transparent'},beginAtZero:true},y:{ticks:{color:txtC,font:{size:11}},grid:{display:false},border:{color:'transparent'}}}
+    }
+  });
+}
+
+// Actualisation automatique toutes les 60 secondes
+setInterval(loadData, 60000);
+loadData();
+</script>
+</body>
+</html>
