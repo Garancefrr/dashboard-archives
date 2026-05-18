@@ -492,11 +492,11 @@ function processData(rows) {
     const kws     = (r[3]||"").trim();
     const yr      = parseInt((r[5]||r[4]||"").trim());
     const lieu    = (r[7]||"").trim();
-
     if(etat==="A faire") afaire++;
     if(archive) archiveCounter[archive] = (archiveCounter[archive]||0)+1;
-
-    if(kws && kws!=="voir photo") {
+    if(!kws || kws==="voir photo") {
+      kwCounter["Sans mots-clés"] = (kwCounter["Sans mots-clés"]||0)+1;
+    } else {
       kws.split(" - ").forEach(k => {
         const kn = k.trim().replace(/-$/,"").trim();
         if(kn) kwCounter[kn.toLowerCase().replace(/^\w/,c=>c.toUpperCase())] = (kwCounter[kn.toLowerCase().replace(/^\w/,c=>c.toUpperCase())]||0)+1;
