@@ -400,12 +400,15 @@ IMPORTANT : Réponds uniquement en JSON avec cette structure exacte, sans backti
     const text = data.content.map(i => i.text || "").join("");
 
     let parsed;
-    try {
-      const clean = text.replace(/```json|```/g, "").trim();
-      parsed = JSON.parse(clean);
-    } catch(e) {
-      throw new Error("Parsing JSON échoué : " + e.message);
-    }
+try {
+  const clean = text.replace(/```json[\s\S]*?```|```/g, "").trim();
+  const jsonMatch = clean.match(/\{[\s\S]*\}/);
+  if(!jsonMatch) throw new Error("Aucun JSON trouvé dans la réponse");
+  parsed = JSON.parse(jsonMatch[0]);
+  if(!parsed.axes) throw new Error("Structure JSON incorrecte");
+} catch(e) {
+  throw new Error("Parsing JSON échoué : " + e.message + " — Réponse : " + text.slice(0,200));
+}
 
     renderAnalyse(wrap, parsed);
     analyseGenerated = true;
