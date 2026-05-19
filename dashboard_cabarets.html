@@ -203,6 +203,11 @@ body{background:var(--bg);color:var(--white);font-family:'Inter',sans-serif;font
 .sources-note{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-top:24px;font-size:12px;color:var(--muted2);line-height:1.7;}
 .sources-note strong{color:var(--white);}
 
+/* ── PROGRESSION ── */
+.prog-stat{background:var(--surface);border-radius:10px;padding:10px 14px;text-align:center;}
+.prog-stat-val{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;}
+.prog-stat-lbl{font-size:11px;color:var(--muted2);margin-top:3px;}
+
 /* ── FOOTER ── */
 footer{margin-top:28px;padding:18px 24px;background:var(--surface);border-top:1px solid var(--border);text-align:center;}
 .footer-credit{font-size:13px;color:var(--muted2);margin-bottom:3px;}
@@ -211,6 +216,8 @@ footer{margin-top:28px;padding:18px 24px;background:var(--surface);border-top:1p
 .footer-divider{width:36px;height:2px;background:linear-gradient(90deg,var(--violet2),var(--violet));border-radius:2px;margin:8px auto;}
 .last-update{font-size:11px;color:var(--muted);margin-top:10px;}
 
+
+/* ── RESPONSIVE TABLETTE ── */
 @media(max-width:900px){
   .kpi-grid,.sources-grid{grid-template-columns:1fr 1fr;}
   .grid2,.grid3,.axes-grid{grid-template-columns:1fr;}
@@ -218,6 +225,81 @@ footer{margin-top:28px;padding:18px 24px;background:var(--surface);border-top:1p
   .timeline-item,.timeline-item:nth-child(odd){flex-direction:column;}
   .timeline-line{display:none;}
 }
+
+/* ── RESPONSIVE MOBILE (Samsung S21 = 360px) ── */
+@media(max-width:480px){
+  /* Topbar : cacher le sous-titre et certains badges */
+  .topbar{padding:10px 12px;}
+  .topbar-sub{display:none;}
+  .topbar-title{font-size:13px;}
+  .topbar-right .badge:not(.live){display:none;}
+  .topbar-right{gap:5px;}
+  .btn{padding:5px 9px;font-size:11px;}
+  .btn-primary{padding:5px 9px;font-size:11px;}
+  .btn-pdf,.btn-mode{display:none;}
+
+  /* Tabs : scroll horizontal compact */
+  .tabs{padding:0 8px;}
+  .tab{padding:10px 10px;font-size:11px;}
+
+  /* Wrap */
+  .wrap{padding:10px 10px;}
+
+  /* KPIs : 2 colonnes en mobile */
+  .kpi-grid{grid-template-columns:1fr 1fr;gap:8px;}
+  .kpi{padding:12px 14px;}
+  .kpi-val{font-size:22px;}
+  .kpi-lbl{font-size:11px;}
+  .kpi-sub{font-size:10px;}
+  .kpi-pill{font-size:9px;}
+
+  /* Sources : 1 colonne */
+  .sources-grid{grid-template-columns:1fr;}
+
+  /* Barre de progression : 1 colonne */
+  #prog-details{grid-template-columns:1fr 1fr 1fr!important;}
+  .prog-stat-val{font-size:18px;}
+  .prog-stat-lbl{font-size:10px;}
+
+  /* Grilles */
+  .grid2,.grid3,.axes-grid{grid-template-columns:1fr;gap:8px;}
+
+  /* Cartes */
+  .card{padding:14px;}
+  .card-title{font-size:10px;}
+
+  /* Graphiques : hauteur réduite */
+  .chart-wrap{height:160px!important;}
+
+  /* Frise */
+  .cards-wrap{grid-template-columns:1fr!important;}
+
+  /* Recherche */
+  .search-bar{flex-direction:column;}
+  .search-input{font-size:12px;}
+  .archive-table th,.archive-table td{font-size:11px;padding:7px 8px;}
+  /* Cacher colonnes moins utiles sur mobile */
+  .archive-table th:nth-child(7),.archive-table td:nth-child(7){display:none;}
+  .archive-table th:nth-child(6),.archive-table td:nth-child(6){display:none;}
+
+  /* Détails termes */
+  .terms-grid{grid-template-columns:1fr 1fr;}
+
+  /* Analyse IA */
+  .axes-grid{grid-template-columns:1fr;}
+  .axe-card{padding:14px;}
+  .axe-title{font-size:13px;}
+  .axe-body{font-size:12px;}
+  .analyse-intro{padding:14px;}
+
+  /* Splash */
+  .splash-title{font-size:20px;}
+  .splash-sub{font-size:12px;}
+
+  /* Footer */
+  footer{padding:14px;}
+}
+
 @media print{
   #splash,header,.topbar,.tabs,.topbar-right,footer,.btn,.btn-primary{display:none!important;}
   body{background:#fff;color:#000;}
@@ -252,8 +334,8 @@ footer{margin-top:28px;padding:18px 24px;background:var(--surface);border-top:1p
     <div class="badge live"><span class="dot-live"></span>Live</div>
     <div class="badge" id="last-sync">—</div>
     <button class="btn" onclick="loadData()">↻ Actualiser</button>
-    <button class="btn" onclick="toggleMode()" id="mode-btn">☀️ Clair</button>
-    <button class="btn btn-primary" onclick="exportPDF()">⬇ PDF</button>
+    <button class="btn btn-mode" onclick="toggleMode()" id="mode-btn">☀️ Clair</button>
+    <button class="btn btn-primary btn-pdf" onclick="exportPDF()">⬇ PDF</button>
   </div>
 </div>
 
@@ -261,7 +343,6 @@ footer{margin-top:28px;padding:18px 24px;background:var(--surface);border-top:1p
 <div class="tabs">
   <div class="tab active"  onclick="switchTab('dashboard',this)">📊 Vue d'ensemble</div>
   <div class="tab"         onclick="switchTab('timeline',this)">📅 Frise chronologique</div>
-
   <div class="tab"         onclick="switchTab('search',this)">🔍 Recherche</div>
   <div class="tab"         onclick="switchTab('details',this)">📋 Détails des termes</div>
   <div class="tab"         onclick="switchTab('analyse',this)">🧠 Analyse IA</div>
@@ -279,16 +360,28 @@ footer{margin-top:28px;padding:18px 24px;background:var(--surface);border-top:1p
     <div class="kpi g"><div class="kpi-val" id="kpi-fonds">—</div><div class="kpi-lbl">Fonds d'archives</div><div class="kpi-sub">ADN · AML · AMArm.</div><div class="kpi-pill" id="kpi-afaire">—</div></div>
   </div>
   <div class="sources-grid" id="sources-grid"></div>
+
+  <!-- BARRE DE PROGRESSION -->
+  <div class="card" style="margin-bottom:16px" id="progression-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="card-title" style="margin-bottom:0">Avancement du dépouillement</div>
+      <span id="prog-label" style="font-size:12px;color:var(--muted2)">—</span>
+    </div>
+    <div style="width:100%;height:10px;background:var(--border);border-radius:5px;overflow:hidden;margin-bottom:10px">
+      <div id="prog-bar" style="height:100%;border-radius:5px;background:linear-gradient(90deg,var(--green),var(--cyan));transition:width .8s ease;width:0%"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px" id="prog-details"></div>
+  </div>
   <div class="grid2">
     <div class="card">
       <div class="card-title">Évolution par décennie</div>
       <div class="leg"><span class="leg-item"><span class="leg-dot" style="background:#818cf8"></span>Total</span><span class="leg-item"><span class="leg-dot" style="background:#f87171"></span>Violence</span></div>
-      <div style="position:relative;height:190px"><canvas id="chart-decade"></canvas></div>
+      <div class="chart-wrap" style="position:relative;height:190px"><canvas id="chart-decade"></canvas></div>
     </div>
     <div class="card">
       <div class="card-title">Répartition thématique</div>
       <div class="leg"><span class="leg-item"><span class="leg-dot" style="background:#f87171"></span>Violence</span><span class="leg-item"><span class="leg-dot" style="background:#818cf8"></span>Juridique</span><span class="leg-item"><span class="leg-dot" style="background:#34d399"></span>Réglementation</span><span class="leg-item"><span class="leg-dot" style="background:#fb923c"></span>Religion</span><span class="leg-item"><span class="leg-dot" style="background:#4a5880"></span>Autre</span></div>
-      <div style="position:relative;height:190px"><canvas id="chart-themes"></canvas></div>
+      <div class="chart-wrap" style="position:relative;height:190px"><canvas id="chart-themes"></canvas></div>
     </div>
   </div>
   <div class="grid3">
@@ -297,8 +390,8 @@ footer{margin-top:28px;padding:18px 24px;background:var(--surface);border-top:1p
     <div class="card"><div class="card-title">Statistiques clés</div><div id="stats-table"></div></div>
   </div>
   <div class="grid2">
-    <div class="card"><div class="card-title">Types de violence</div><div style="position:relative;height:210px"><canvas id="chart-violence"></canvas></div></div>
-    <div class="card"><div class="card-title">Mœurs & religion</div><div style="position:relative;height:210px"><canvas id="chart-moeurs"></canvas></div></div>
+    <div class="card"><div class="card-title">Types de violence</div><div class="chart-wrap" style="position:relative;height:210px"><canvas id="chart-violence"></canvas></div></div>
+    <div class="card"><div class="card-title">Mœurs & religion</div><div class="chart-wrap" style="position:relative;height:210px"><canvas id="chart-moeurs"></canvas></div></div>
   </div>
 </div>
 </div>
@@ -619,7 +712,25 @@ function processData(rows){
   document.getElementById('kpi-fonds').textContent=Object.keys(archiveCounter).length;
   document.getElementById('kpi-afaire').textContent=afaire+" à traiter";
 
-  // Sources
+  // BARRE DE PROGRESSION
+  const traites = rows.length - afaire;
+  const pctProg = rows.length ? Math.round(traites/rows.length*100) : 0;
+  const noKwTotal = Object.values(archiveNoKw).reduce((a,b)=>a+b,0);
+  document.getElementById('prog-bar').style.width = pctProg+'%';
+  document.getElementById('prog-label').textContent = pctProg+'% dépouillé';
+  document.getElementById('prog-details').innerHTML = `
+    <div class="prog-stat">
+      <div class="prog-stat-val" style="color:var(--green)">${traites}</div>
+      <div class="prog-stat-lbl">Archives traitées</div>
+    </div>
+    <div class="prog-stat">
+      <div class="prog-stat-val" style="color:var(--orange)">${afaire}</div>
+      <div class="prog-stat-lbl">À dépouiller</div>
+    </div>
+    <div class="prog-stat">
+      <div class="prog-stat-val" style="color:var(--muted2)">${noKwTotal}</div>
+      <div class="prog-stat-lbl">Sans mots-clés</div>
+    </div>`;
   const srcEl=document.getElementById('sources-grid'); srcEl.innerHTML="";
   [{key:"ADN",name:"ADN — Archives Départ. du Nord",color:"#818cf8"},
    {key:"AML",name:"AML — Archives Munic. de Lille",color:"#34d399"},
