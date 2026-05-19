@@ -3,248 +3,370 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Archives Cabarets & Tavernes — Dashboard</title>
+<title>Archives Cabarets & Tavernes — Valère Fourreau</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
-  :root {
-    --bg:#0a0d14; --surface:#111520; --card:#161c2e; --border:#1e2a42;
-    --border2:#253047; --white:#e8edf8; --muted:#4a5880; --muted2:#6b7fa8;
-    --violet:#818cf8; --violet2:#4f46e5; --red:#f87171;
-    --orange:#fb923c; --green:#34d399; --cyan:#22d3ee;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:var(--bg);color:var(--white);font-family:'Inter',sans-serif;font-size:14px;min-height:100vh;}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+:root {
+  --bg:#0a0d14;--surface:#111520;--card:#161c2e;--border:#1e2a42;
+  --border2:#253047;--white:#e8edf8;--muted:#4a5880;--muted2:#6b7fa8;
+  --violet:#818cf8;--violet2:#4f46e5;--red:#f87171;--orange:#fb923c;
+  --green:#34d399;--cyan:#22d3ee;
+}
+body.light{
+  --bg:#f0f2f8;--surface:#ffffff;--card:#ffffff;--border:#e2e8f0;
+  --border2:#cbd5e1;--white:#1e293b;--muted:#94a3b8;--muted2:#64748b;
+  --violet:#4f46e5;--violet2:#4338ca;--red:#dc2626;--orange:#ea580c;
+  --green:#059669;--cyan:#0891b2;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--white);font-family:'Inter',sans-serif;font-size:14px;min-height:100vh;transition:background .3s,color .3s;}
 
-  .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
-  .topbar-left{display:flex;align-items:center;gap:12px;}
-  .topbar-icon{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--violet2),var(--violet));display:flex;align-items:center;justify-content:center;font-size:16px;}
-  .topbar-title{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:var(--white);}
-  .topbar-sub{font-size:11px;color:var(--muted2);margin-top:1px;}
-  .topbar-right{display:flex;align-items:center;gap:8px;}
-  .badge{background:var(--card);border:1px solid var(--border2);color:var(--muted2);font-size:11px;padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:5px;}
-  .badge.live{border-color:var(--green);color:var(--green);}
-  .dot-live{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-  .btn-refresh{background:var(--card);border:1px solid var(--border2);color:var(--white);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;transition:background .15s;font-family:'Inter',sans-serif;}
-  .btn-refresh:hover{background:var(--border2);}
+/* ── SPLASH ── */
+#splash{position:fixed;inset:0;background:#0a0d14;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;transition:opacity .6s;}
+#splash.hide{opacity:0;pointer-events:none;}
+.splash-icon{font-size:48px;animation:float 3s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.splash-title{font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;color:#e8edf8;text-align:center;}
+.splash-sub{font-size:14px;color:#6b7fa8;text-align:center;max-width:420px;line-height:1.7;}
+.splash-author{font-size:13px;color:#818cf8;font-weight:500;margin-top:8px;}
+.splash-bar{width:200px;height:3px;background:#1e2a42;border-radius:2px;overflow:hidden;margin-top:16px;}
+.splash-bar-fill{height:100%;background:linear-gradient(90deg,#4f46e5,#818cf8);border-radius:2px;animation:load 2s ease-in-out forwards;}
+@keyframes load{from{width:0}to{width:100%}}
+.splash-btn{margin-top:8px;background:linear-gradient(135deg,#4f46e5,#818cf8);color:#fff;border:none;padding:10px 28px;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;opacity:0;animation:fadein 1s 1.8s forwards;font-family:'Inter',sans-serif;}
+@keyframes fadein{to{opacity:1}}
 
-  .tabs{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;display:flex;gap:0;}
-  .tab{padding:12px 20px;font-size:13px;font-weight:500;color:var(--muted2);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;user-select:none;}
-  .tab:hover{color:var(--white);}
-  .tab.active{color:var(--violet);border-bottom-color:var(--violet);}
-  .tab-content{display:none;}
-  .tab-content.active{display:block;}
+/* ── TOPBAR ── */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.topbar-left{display:flex;align-items:center;gap:10px;}
+.topbar-icon{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--violet2),var(--violet));display:flex;align-items:center;justify-content:center;font-size:15px;}
+.topbar-title{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;color:var(--white);}
+.topbar-sub{font-size:11px;color:var(--muted2);}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.badge{background:var(--card);border:1px solid var(--border2);color:var(--muted2);font-size:11px;padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:5px;}
+.badge.live{border-color:var(--green);color:var(--green);}
+.dot-live{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.btn{background:var(--card);border:1px solid var(--border2);color:var(--white);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;transition:background .15s;}
+.btn:hover{background:var(--border2);}
+.btn-primary{background:var(--violet);border-color:var(--violet);color:#fff;}
+.btn-primary:hover{background:var(--violet2);}
 
-  .wrap{padding:24px 28px;max-width:1400px;margin:0 auto;}
+/* ── TABS ── */
+.tabs{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;gap:0;overflow-x:auto;}
+.tab{padding:11px 18px;font-size:12px;font-weight:500;color:var(--muted2);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;user-select:none;white-space:nowrap;}
+.tab:hover{color:var(--white);}
+.tab.active{color:var(--violet);border-bottom-color:var(--violet);}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
 
-  #loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:16px;color:var(--muted2);}
-  .spinner{width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--violet);border-radius:50%;animation:spin 0.8s linear infinite;}
-  @keyframes spin{to{transform:rotate(360deg);}}
+/* ── WRAP ── */
+.wrap{padding:20px 24px;max-width:1400px;margin:0 auto;}
 
-  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
-  .kpi{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;position:relative;overflow:hidden;}
-  .kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;}
-  .kpi.v::before{background:var(--violet);}
-  .kpi.r::before{background:var(--red);}
-  .kpi.o::before{background:var(--orange);}
-  .kpi.g::before{background:var(--green);}
-  .kpi-val{font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;line-height:1;}
-  .kpi.v .kpi-val{color:var(--violet);}
-  .kpi.r .kpi-val{color:var(--red);}
-  .kpi.o .kpi-val{color:var(--orange);}
-  .kpi.g .kpi-val{color:var(--green);}
-  .kpi-lbl{font-size:12px;color:var(--white);font-weight:500;margin-top:6px;}
-  .kpi-sub{font-size:11px;color:var(--muted2);margin-top:3px;}
-  .kpi-pill{display:inline-block;margin-top:8px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:600;}
-  .kpi.v .kpi-pill{background:rgba(129,140,248,.15);color:var(--violet);}
-  .kpi.r .kpi-pill{background:rgba(248,113,113,.15);color:var(--red);}
-  .kpi.o .kpi-pill{background:rgba(251,146,60,.15);color:var(--orange);}
-  .kpi.g .kpi-pill{background:rgba(52,211,153,.15);color:var(--green);}
+/* ── LOADING ── */
+#loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:16px;color:var(--muted2);}
+.spinner{width:32px;height:32px;border:3px solid var(--border2);border-top-color:var(--violet);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
 
-  .sources-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
-  .src-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;}
-  .src-name{font-size:12px;font-weight:500;color:var(--white);margin-bottom:6px;}
-  .src-n{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;}
-  .src-pct{font-size:11px;color:var(--muted2);margin-top:2px;}
-  .src-bar{margin-top:10px;width:100%;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
-  .src-bar-fill{height:100%;border-radius:2px;}
-  .src-tags{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
-  .src-tag{font-size:10px;padding:3px 8px;border-radius:10px;font-weight:600;}
+/* ── KPI ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;position:relative;overflow:hidden;}
+.kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;}
+.kpi.v::before{background:var(--violet)}.kpi.r::before{background:var(--red)}.kpi.o::before{background:var(--orange)}.kpi.g::before{background:var(--green)}
+.kpi-val{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;line-height:1;}
+.kpi.v .kpi-val{color:var(--violet)}.kpi.r .kpi-val{color:var(--red)}.kpi.o .kpi-val{color:var(--orange)}.kpi.g .kpi-val{color:var(--green)}
+.kpi-lbl{font-size:12px;color:var(--white);font-weight:500;margin-top:5px;}
+.kpi-sub{font-size:11px;color:var(--muted2);margin-top:2px;}
+.kpi-pill{display:inline-block;margin-top:7px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;}
+.kpi.v .kpi-pill{background:rgba(129,140,248,.15);color:var(--violet)}
+.kpi.r .kpi-pill{background:rgba(248,113,113,.15);color:var(--red)}
+.kpi.o .kpi-pill{background:rgba(251,146,60,.15);color:var(--orange)}
+.kpi.g .kpi-pill{background:rgba(52,211,153,.15);color:var(--green)}
 
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
-  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;}
-  .card-title{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted2);margin-bottom:16px;}
+/* ── SOURCES ── */
+.sources-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.src-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;}
+.src-name{font-size:12px;font-weight:500;color:var(--white);margin-bottom:5px;}
+.src-n{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;}
+.src-pct{font-size:11px;color:var(--muted2);margin-top:2px;}
+.src-bar{margin-top:8px;width:100%;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.src-bar-fill{height:100%;border-radius:2px;}
+.src-tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+.src-tag{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;}
 
-  .hbar{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
-  .hbar-lbl{font-size:12px;color:var(--muted2);min-width:88px;text-align:right;}
-  .hbar-track{flex:1;background:var(--border);border-radius:3px;height:14px;overflow:hidden;}
-  .hbar-fill{height:100%;border-radius:3px;}
-  .hbar-n{font-size:11px;color:var(--muted);min-width:20px;text-align:right;}
+/* ── GRIDS ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;}
+.card-title{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted2);margin-bottom:14px;}
 
-  .stat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);}
-  .stat-row:last-child{border:none;}
-  .stat-lbl{font-size:12px;color:var(--muted2);}
-  .stat-val{font-size:12px;font-weight:500;color:var(--white);display:flex;align-items:center;gap:6px;}
-  .pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;}
-  .pill-v{background:rgba(129,140,248,.15);color:var(--violet);}
-  .pill-r{background:rgba(248,113,113,.15);color:var(--red);}
-  .pill-o{background:rgba(251,146,60,.15);color:var(--orange);}
-  .pill-g{background:rgba(52,211,153,.15);color:var(--green);}
-  .pill-m{background:rgba(74,88,128,.2);color:var(--muted2);}
+/* ── BARS ── */
+.hbar{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.hbar-lbl{font-size:11px;color:var(--muted2);min-width:84px;text-align:right;}
+.hbar-track{flex:1;background:var(--border);border-radius:3px;height:13px;overflow:hidden;}
+.hbar-fill{height:100%;border-radius:3px;}
+.hbar-n{font-size:11px;color:var(--muted);min-width:18px;text-align:right;}
 
-  .leg{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px;}
-  .leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted2);}
-  .leg-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+/* ── STATS ── */
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);}
+.stat-row:last-child{border:none;}
+.stat-lbl{font-size:12px;color:var(--muted2);}
+.stat-val{font-size:12px;font-weight:500;color:var(--white);display:flex;align-items:center;gap:5px;}
+.pill{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600;}
+.pill-v{background:rgba(129,140,248,.15);color:var(--violet)}
+.pill-r{background:rgba(248,113,113,.15);color:var(--red)}
+.pill-o{background:rgba(251,146,60,.15);color:var(--orange)}
+.pill-g{background:rgba(52,211,153,.15);color:var(--green)}
+.pill-m{background:rgba(74,88,128,.2);color:var(--muted2)}
 
-  /* ONGLET DETAILS */
-  .theme-section{margin-bottom:32px;}
-  .theme-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);}
-  .theme-color-bar{width:4px;height:32px;border-radius:2px;flex-shrink:0;}
-  .theme-name{font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:600;color:var(--white);}
-  .theme-total-lbl{font-size:12px;color:var(--muted2);margin-left:auto;}
-  .theme-pct-badge{font-size:11px;padding:3px 10px;border-radius:10px;font-weight:600;margin-left:8px;}
-  .terms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;}
-  .term-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;}
-  .term-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
-  .term-name{font-size:12px;color:var(--white);}
-  .term-n{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;}
-  .term-bar-wrap{width:100%;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
-  .term-bar{height:100%;border-radius:2px;}
+/* ── LEG ── */
+.leg{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted2);}
+.leg-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
 
-  /* ONGLET ANALYSE */
-  .analyse-intro{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px 28px;margin-bottom:28px;}
-  .analyse-intro-title{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:600;color:var(--white);margin-bottom:8px;}
-  .analyse-intro-sub{font-size:13px;color:var(--muted2);line-height:1.7;max-width:820px;}
-  .analyse-meta{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
-  .analyse-meta-tag{font-size:11px;padding:4px 12px;border-radius:20px;font-weight:500;}
-  .axes-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;}
-  .axe-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px 24px;}
-  .axe-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;}
-  .axe-num{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;flex-shrink:0;}
-  .axe-title{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:var(--white);line-height:1.3;}
-  .axe-subtitle{font-size:11px;color:var(--muted2);margin-top:2px;}
-  .axe-body{font-size:13px;color:var(--muted2);line-height:1.8;}
-  .axe-body p{margin-bottom:10px;}
-  .axe-body p:last-child{margin-bottom:0;}
-  .axe-body strong{color:var(--white);font-weight:500;}
-  .axe-stats{display:flex;gap:8px;margin:14px 0;flex-wrap:wrap;}
-  .axe-stat{padding:6px 12px;border-radius:8px;font-size:12px;font-weight:500;}
-  .axe-quote{border-left:3px solid var(--border2);padding:10px 16px;margin:14px 0;font-size:12px;color:var(--muted2);font-style:italic;line-height:1.7;}
-  .axe-quote cite{display:block;margin-top:6px;font-style:normal;font-size:11px;color:var(--muted);}
-  .conclusion-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px 28px;margin-bottom:28px;}
-  .conclusion-title{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;color:var(--white);margin-bottom:14px;display:flex;align-items:center;gap:10px;}
-  .conclusion-body{font-size:13px;color:var(--muted2);line-height:1.85;}
-  .conclusion-body p{margin-bottom:12px;}
-  .conclusion-body p:last-child{margin-bottom:0;}
-  .conclusion-body strong{color:var(--white);font-weight:500;}
-  .sources-note{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-top:28px;font-size:12px;color:var(--muted2);line-height:1.7;}
-  .sources-note strong{color:var(--white);}
-  footer{margin-top:32px;padding:20px 28px;background:var(--surface);border-top:1px solid var(--border);text-align:center;}
-  .footer-credit{font-size:13px;color:var(--muted2);margin-bottom:4px;}
-  .footer-name{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:var(--violet);}
-  .footer-sub{font-size:11px;color:var(--muted);margin-top:4px;}
-  .footer-divider{width:40px;height:2px;background:linear-gradient(90deg,var(--violet2),var(--violet));border-radius:2px;margin:10px auto;}
-  .last-update{font-size:11px;color:var(--muted);margin-top:12px;}
 
-  @media(max-width:900px){
-    .kpi-grid,.sources-grid{grid-template-columns:1fr 1fr;}
-    .grid2,.grid3{grid-template-columns:1fr;}
-    .wrap{padding:16px;}
-    .terms-grid{grid-template-columns:1fr 1fr;}
-  }
+
+/* ── TIMELINE TAB ── */
+.timeline-wrap{position:relative;padding:20px 0;}
+.timeline-line{position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--border);transform:translateX(-50%);}
+.timeline-item{display:flex;gap:20px;margin-bottom:20px;position:relative;}
+.timeline-item:nth-child(odd){flex-direction:row-reverse;}
+.timeline-item:nth-child(odd) .tl-content{text-align:right;}
+.tl-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;margin-top:4px;position:relative;z-index:1;border:2px solid var(--bg);}
+.tl-date{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:var(--violet);margin-bottom:3px;}
+.tl-content{flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+.tl-title{font-size:12px;font-weight:500;color:var(--white);margin-bottom:4px;}
+.tl-desc{font-size:11px;color:var(--muted2);line-height:1.6;}
+.tl-tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;margin-top:6px;font-weight:500;}
+.tl-decade-header{text-align:center;margin:24px 0 16px;position:relative;}
+.tl-decade-badge{display:inline-block;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 16px;font-size:12px;font-weight:600;color:var(--violet);position:relative;z-index:1;}
+
+/* ── SEARCH TAB ── */
+.search-bar{display:flex;gap:10px;margin-bottom:16px;}
+.search-input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--white);font-family:'Inter',sans-serif;outline:none;}
+.search-input:focus{border-color:var(--violet);}
+.search-input::placeholder{color:var(--muted);}
+.filter-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.filter-btn{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11px;color:var(--muted2);cursor:pointer;transition:all .15s;}
+.filter-btn.active{background:var(--violet);border-color:var(--violet);color:#fff;}
+.results-count{font-size:12px;color:var(--muted2);margin-bottom:12px;}
+.archive-table{width:100%;border-collapse:collapse;}
+.archive-table th{font-size:11px;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);background:var(--surface);}
+.archive-table td{font-size:12px;padding:10px 12px;border-bottom:1px solid var(--border);color:var(--white);vertical-align:top;}
+.archive-table tr:hover td{background:var(--surface);}
+.archive-table tr:last-child td{border:none;}
+.kw-tag{display:inline-block;font-size:10px;padding:2px 6px;border-radius:6px;margin:1px;font-weight:500;}
+.no-results{text-align:center;padding:40px;color:var(--muted2);font-size:13px;}
+
+/* ── DETAILS TAB ── */
+.theme-section{margin-bottom:28px;}
+.theme-header{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.theme-color-bar{width:4px;height:28px;border-radius:2px;flex-shrink:0;}
+.theme-name{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;color:var(--white);}
+.theme-total-lbl{font-size:12px;color:var(--muted2);margin-left:auto;}
+.theme-pct-badge{font-size:11px;padding:3px 9px;border-radius:10px;font-weight:600;margin-left:8px;}
+.terms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;}
+.term-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;}
+.term-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;}
+.term-name{font-size:12px;color:var(--white);}
+.term-n{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;}
+.term-bar-wrap{width:100%;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+.term-bar{height:100%;border-radius:2px;}
+
+/* ── ANALYSE TAB ── */
+.analyse-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px 24px;margin-bottom:24px;}
+.analyse-intro-title{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:600;color:var(--white);margin-bottom:7px;}
+.analyse-intro-sub{font-size:13px;color:var(--muted2);line-height:1.7;max-width:820px;}
+.analyse-meta{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+.analyse-meta-tag{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500;}
+.axes-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;}
+.axe-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.axe-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;}
+.axe-num{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;flex-shrink:0;}
+.axe-title{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;color:var(--white);line-height:1.3;}
+.axe-subtitle{font-size:11px;color:var(--muted2);margin-top:2px;}
+.axe-stats{display:flex;gap:7px;margin:12px 0;flex-wrap:wrap;}
+.axe-stat{padding:4px 10px;border-radius:8px;font-size:11px;font-weight:500;}
+.axe-body{font-size:13px;color:var(--muted2);line-height:1.8;}
+.axe-body p{margin-bottom:9px;}
+.axe-body p:last-child{margin-bottom:0;}
+.axe-body strong{color:var(--white);font-weight:600;}
+.axe-quote{border-left:3px solid var(--border2);padding:8px 14px;margin:12px 0;font-size:12px;color:var(--muted2);font-style:italic;line-height:1.7;}
+.axe-quote cite{display:block;margin-top:5px;font-style:normal;font-size:11px;color:var(--muted);}
+.conclusion-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px 24px;margin-bottom:24px;}
+.conclusion-title{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:var(--white);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.conclusion-body{font-size:13px;color:var(--muted2);line-height:1.85;}
+.conclusion-body p{margin-bottom:11px;}
+.conclusion-body p:last-child{margin-bottom:0;}
+.conclusion-body strong{color:var(--white);font-weight:600;}
+.sources-note{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-top:24px;font-size:12px;color:var(--muted2);line-height:1.7;}
+.sources-note strong{color:var(--white);}
+
+/* ── FOOTER ── */
+footer{margin-top:28px;padding:18px 24px;background:var(--surface);border-top:1px solid var(--border);text-align:center;}
+.footer-credit{font-size:13px;color:var(--muted2);margin-bottom:3px;}
+.footer-name{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;color:var(--violet);}
+.footer-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+.footer-divider{width:36px;height:2px;background:linear-gradient(90deg,var(--violet2),var(--violet));border-radius:2px;margin:8px auto;}
+.last-update{font-size:11px;color:var(--muted);margin-top:10px;}
+
+@media(max-width:900px){
+  .kpi-grid,.sources-grid{grid-template-columns:1fr 1fr;}
+  .grid2,.grid3,.axes-grid{grid-template-columns:1fr;}
+  .wrap{padding:14px;}
+  .timeline-item,.timeline-item:nth-child(odd){flex-direction:column;}
+  .timeline-line{display:none;}
+}
+@media print{
+  #splash,header,.topbar,.tabs,.topbar-right,footer,.btn,.btn-primary{display:none!important;}
+  body{background:#fff;color:#000;}
+  .card,.axe-card,.conclusion-card,.src-card,.kpi{background:#fff;border:1px solid #e2e8f0;break-inside:avoid;}
+  .axe-body,.conclusion-body{color:#333;}
+  .axe-body strong,.conclusion-body strong{color:#000;}
+}
 </style>
 </head>
 <body>
 
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-icon">🍺</div>
+  <div class="splash-title">Archives des cabarets<br>& tavernes des Flandres</div>
+  <div class="splash-sub">Corpus archivistique · XVII<sup>e</sup>–XVIII<sup>e</sup> siècle<br>Fonds ADN · AML · AMArmentières</div>
+  <div class="splash-author">Mémoire de master d'histoire publique — Valère Fourreau</div>
+  <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+  <button class="splash-btn" onclick="enterDash()">Accéder au dashboard →</button>
+</div>
+
+<!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-left">
     <div class="topbar-icon">🍺</div>
     <div>
       <div class="topbar-title">Archives — Cabarets & Tavernes</div>
-      <div class="topbar-sub">Flandres · XVII<sup>e</sup>–XVIII<sup>e</sup> siècle</div>
+      <div class="topbar-sub">Flandres · XVII<sup>e</sup>–XVIII<sup>e</sup> siècle · Valère Fourreau</div>
     </div>
   </div>
   <div class="topbar-right">
-    <div class="badge live"><span class="dot-live"></span>Données live</div>
+    <div class="badge live"><span class="dot-live"></span>Live</div>
     <div class="badge" id="last-sync">—</div>
-    <button class="btn-refresh" onclick="loadData()">↻ Actualiser</button>
+    <button class="btn" onclick="loadData()">↻ Actualiser</button>
+    <button class="btn" onclick="toggleMode()" id="mode-btn">☀️ Clair</button>
+    <button class="btn btn-primary" onclick="exportPDF()">⬇ PDF</button>
   </div>
 </div>
 
+<!-- TABS -->
 <div class="tabs">
-  <div class="tab active"  onclick="switchTab('dashboard',this)">Vue d'ensemble</div>
-  <div class="tab"         onclick="switchTab('details',this)">Détails des termes</div>
-  <div class="tab"         onclick="switchTab('analyse',this)">Analyse</div>
+  <div class="tab active"  onclick="switchTab('dashboard',this)">📊 Vue d'ensemble</div>
+  <div class="tab"         onclick="switchTab('timeline',this)">📅 Frise chronologique</div>
+
+  <div class="tab"         onclick="switchTab('search',this)">🔍 Recherche</div>
+  <div class="tab"         onclick="switchTab('details',this)">📋 Détails des termes</div>
+  <div class="tab"         onclick="switchTab('analyse',this)">🧠 Analyse IA</div>
 </div>
 
 <div id="loading"><div class="spinner"></div><div>Chargement des données…</div></div>
 
+<!-- ═══ DASHBOARD ═══ -->
 <div id="tab-dashboard" class="tab-content active">
 <div class="wrap">
-
   <div class="kpi-grid">
     <div class="kpi v"><div class="kpi-val" id="kpi-total">—</div><div class="kpi-lbl">Archives analysées</div><div class="kpi-sub" id="kpi-range">—</div><div class="kpi-pill">corpus complet</div></div>
     <div class="kpi r"><div class="kpi-val" id="kpi-violence">—</div><div class="kpi-lbl">Affaires de violence</div><div class="kpi-sub" id="kpi-vpct">—</div><div class="kpi-pill" id="kpi-vpill">—</div></div>
     <div class="kpi o"><div class="kpi-val" id="kpi-meurtres">—</div><div class="kpi-lbl">Homicides recensés</div><div class="kpi-sub" id="kpi-msub">—</div><div class="kpi-pill">dont couteaux</div></div>
     <div class="kpi g"><div class="kpi-val" id="kpi-fonds">—</div><div class="kpi-lbl">Fonds d'archives</div><div class="kpi-sub">ADN · AML · AMArm.</div><div class="kpi-pill" id="kpi-afaire">—</div></div>
   </div>
-
   <div class="sources-grid" id="sources-grid"></div>
-
   <div class="grid2">
     <div class="card">
       <div class="card-title">Évolution par décennie</div>
-      <div class="leg">
-        <span class="leg-item"><span class="leg-dot" style="background:#818cf8"></span>Total archives</span>
-        <span class="leg-item"><span class="leg-dot" style="background:#f87171"></span>Violence / meurtre</span>
-      </div>
-      <div style="position:relative;height:200px"><canvas id="chart-decade" role="img" aria-label="Archives par décennie">Evolution 1590-1715.</canvas></div>
+      <div class="leg"><span class="leg-item"><span class="leg-dot" style="background:#818cf8"></span>Total</span><span class="leg-item"><span class="leg-dot" style="background:#f87171"></span>Violence</span></div>
+      <div style="position:relative;height:190px"><canvas id="chart-decade"></canvas></div>
     </div>
     <div class="card">
       <div class="card-title">Répartition thématique</div>
-      <div class="leg">
-        <span class="leg-item"><span class="leg-dot" style="background:#f87171"></span>Violence</span>
-        <span class="leg-item"><span class="leg-dot" style="background:#818cf8"></span>Juridique</span>
-        <span class="leg-item"><span class="leg-dot" style="background:#34d399"></span>Réglementation</span>
-        <span class="leg-item"><span class="leg-dot" style="background:#fb923c"></span>Religion</span>
-        <span class="leg-item"><span class="leg-dot" style="background:#4a5880"></span>Autre</span>
-      </div>
-      <div style="position:relative;height:200px"><canvas id="chart-themes" role="img" aria-label="Répartition thématique">Violence, Juridique, Réglementation, Religion, Autre.</canvas></div>
+      <div class="leg"><span class="leg-item"><span class="leg-dot" style="background:#f87171"></span>Violence</span><span class="leg-item"><span class="leg-dot" style="background:#818cf8"></span>Juridique</span><span class="leg-item"><span class="leg-dot" style="background:#34d399"></span>Réglementation</span><span class="leg-item"><span class="leg-dot" style="background:#fb923c"></span>Religion</span><span class="leg-item"><span class="leg-dot" style="background:#4a5880"></span>Autre</span></div>
+      <div style="position:relative;height:190px"><canvas id="chart-themes"></canvas></div>
     </div>
   </div>
-
   <div class="grid3">
     <div class="card"><div class="card-title">Top mots-clés</div><div id="kw-bars"></div></div>
     <div class="card"><div class="card-title">Villes les plus citées</div><div id="lieu-bars"></div></div>
     <div class="card"><div class="card-title">Statistiques clés</div><div id="stats-table"></div></div>
   </div>
-
   <div class="grid2">
-    <div class="card">
-      <div class="card-title">Types de violence — détail</div>
-      <div style="position:relative;height:220px"><canvas id="chart-violence" role="img" aria-label="Détail violence">Meurtre, Arme, Couteau, Injure, Militaire.</canvas></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Mœurs, religion & société</div>
-      <div style="position:relative;height:220px"><canvas id="chart-moeurs" role="img" aria-label="Mœurs et religion">Religieux, Ivresse, Ivrognerie, Jeu, Prostitution.</canvas></div>
+    <div class="card"><div class="card-title">Types de violence</div><div style="position:relative;height:210px"><canvas id="chart-violence"></canvas></div></div>
+    <div class="card"><div class="card-title">Mœurs & religion</div><div style="position:relative;height:210px"><canvas id="chart-moeurs"></canvas></div></div>
+  </div>
+</div>
+</div>
+
+<!-- ═══ FRISE ═══ -->
+<div id="tab-timeline" class="tab-content">
+<div class="wrap">
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Frise chronologique — toutes les archives</div>
+    <div style="font-size:12px;color:var(--muted2);margin-bottom:14px">Cliquez sur une décennie pour ouvrir · Filtrez par thématique</div>
+    <!-- Filtres thématiques -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:0" id="theme-filters">
+      <span class="filter-btn active" style="--fc:#f87171" onclick="toggleTheme('v',this)">Violence</span>
+      <span class="filter-btn active" style="--fc:#818cf8" onclick="toggleTheme('j',this)">Juridique</span>
+      <span class="filter-btn active" style="--fc:#34d399" onclick="toggleTheme('f',this)">Fiscalité</span>
+      <span class="filter-btn active" style="--fc:#fb923c" onclick="toggleTheme('m',this)">Mœurs</span>
+      <span class="filter-btn active" style="--fc:#22d3ee" onclick="toggleTheme('r',this)">Réglementation</span>
+      <span class="filter-btn active" style="--fc:#4a5880" onclick="toggleTheme('g',this)">Autre</span>
+      <span class="filter-btn active" style="--fc:#92400e" onclick="toggleTheme('a',this)">À faire</span>
     </div>
   </div>
-
+  <div id="timeline-content"></div>
+  <div id="tl-count" style="font-size:12px;color:var(--muted2);margin-top:8px;text-align:right"></div>
 </div>
 </div>
 
-<div id="tab-details" class="tab-content">
+<!-- ═══ CARTE ═══ -->
+
+
+<!-- ═══ RECHERCHE ═══ -->
+<div id="tab-search" class="tab-content">
 <div class="wrap">
-  <div id="details-content"></div>
+  <div class="search-bar">
+    <input class="search-input" id="search-input" type="text" placeholder="Rechercher par archive, lieu, personne, mot-clé, résumé…" oninput="doSearch()">
+    <button class="btn btn-primary" onclick="doSearch()">Rechercher</button>
+    <button class="btn" onclick="clearSearch()">Effacer</button>
+  </div>
+  <div class="filter-row" id="search-filters"></div>
+  <div class="results-count" id="results-count"></div>
+  <div style="overflow-x:auto">
+    <table class="archive-table">
+      <thead>
+        <tr>
+          <th>Archive</th>
+          <th>Côte</th>
+          <th>État</th>
+          <th>Mots-clés</th>
+          <th>Date</th>
+          <th>Lieu</th>
+          <th>Résumé</th>
+        </tr>
+      </thead>
+      <tbody id="search-results"></tbody>
+    </table>
+  </div>
 </div>
 </div>
 
+<!-- ═══ DÉTAILS ═══ -->
+<div id="tab-details" class="tab-content">
+<div class="wrap"><div id="details-content"></div></div>
+</div>
+
+<!-- ═══ ANALYSE IA ═══ -->
 <div id="tab-analyse" class="tab-content">
 <div class="wrap">
-  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;color:var(--muted2);">
-    <div style="font-size:13px">Cliquez sur l'onglet Analyse pour générer l'analyse avec Claude IA</div>
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;gap:16px;color:var(--muted2);">
+    <div style="font-size:13px">Cliquez sur l'onglet Analyse IA pour générer l'analyse</div>
   </div>
 </div>
 </div>
@@ -253,441 +375,182 @@
   <div class="footer-divider"></div>
   <div class="footer-credit">Données historiques collectées et structurées par</div>
   <div class="footer-name">Valère Fourreau</div>
-  <div class="footer-sub">Corpus archivistique · Cabarets &amp; tavernes des Flandres · XVII<sup>e</sup>–XVIII<sup>e</sup> siècle<br>Sources : Archives Départementales du Nord (ADN) · Archives Municipales de Lille (AML) · Archives Municipales d'Armentières</div>
-  <div class="footer-divider" style="margin-top:14px"></div>
-  <div class="last-update" id="last-update">Dernière synchronisation : —</div>
+  <div class="footer-sub">Corpus archivistique · Cabarets &amp; tavernes des Flandres · XVII<sup>e</sup>–XVIII<sup>e</sup> siècle<br>Sources : ADN · AML · AMArmentières</div>
+  <div class="footer-divider" style="margin-top:12px"></div>
+  <div class="last-update" id="last-update">—</div>
 </footer>
 
 <script>
-const SHEET_ID = "1KjPmgfqahOIMoN9gjOSlK66AilcNPf5fEFNiFS81aEM";
-const API_KEY  = "AIzaSyCFbQb-wJ_AC0tuARqDCa-530GBWSbf2j0";
-const RANGE    = "archives!A2:L300";
+// ═══════════════ CONFIG ═══════════════
+const SHEET_ID   = "1KjPmgfqahOIMoN9gjOSlK66AilcNPf5fEFNiFS81aEM";
+const API_KEY    = "AIzaSyCFbQb-wJ_AC0tuARqDCa-530GBWSbf2j0";
+const RANGE      = "archives!A2:L300";
+const WORKER_URL = "https://archive-dashboard-cabaret.garancefrr.workers.dev/";
 
-let charts = {};
-let globalKwCounter = {};
-let globalLocCounter = {};
-let globalArchiveCounter = {};
-let globalDecTotal = {};
-let globalDecViol = {};
-let globalTotal = 0;
+// ═══════════════ STATE ═══════════════
+let charts={}, globalKwCounter={}, globalLocCounter={}, globalArchiveCounter={};
+let globalDecTotal={}, globalDecViol={}, globalTotal=0, globalRows=[];
+let analyseGenerated=false, lastAnalyseTotal=0, lightMode=false;
 
 const THEMES = {
-  "Violence & criminalité": {
-    color:"#f87171",
-    keys:["Violence","Meurtre","Arme","Couteau","Injure","Bagarre","Agression","Effraction","Duel","Incendie","Corruption","Complicité","Vengeance","Prémédité","Sang","Groupe","Militaire","Désertions","Soldats","Violences","Psychopate","Menace","Défis","Courtoisie"]
-  },
-  "Juridico-commercial": {
-    color:"#818cf8",
-    keys:["Vente","Achat","Contrat","Accord","Escroquerie","Fraude","Vol","Dette","Dettes","Hypothèque","Immobilier","Héritage","Bail","Succession","Saisie","Squatte","Arrestation","Evacuation","Contestation","Édit","Ordonnance","Ordonnances","Tarif","Exemption","Interdiction","Limitation","Réglementation","Ouverture","Autorisation","Construction","Location","Opposition","Litige","Confrérie","Enseigne","Affaire","Prix","Refus","Abus de pouvoir","Inspection","Siège","Burguet","Vente judiciaire","Aggrandissement","Besoins"]
-  },
-  "Fiscalité & finance": {
-    color:"#34d399",
-    keys:["Taxe","Impôts","Finances","Argent","Amende","Débits Alcools","Droit","Consommation"]
-  },
-  "Religion & mœurs": {
-    color:"#fb923c",
-    keys:["Religieux","Religion","Ivresse","Ivrognerie","Jeu","Jeux","Prostitution","Fête","Fêtes","Addiction","Obscur","Juridiction","Réformé","Fuite","Lecture","Carte","Ivrognerie"]
-  },
-  "Sans mots-clés": {
-    color:"#4a5880",
-    keys:["Sans mots-clés"]
-  }
+  "Violence & criminalité":{color:"#f87171",keys:["Violence","Meurtre","Arme","Couteau","Injure","Bagarre","Agression","Effraction","Duel","Incendie","Corruption","Complicité","Vengeance","Prémédité","Sang","Groupe","Militaire","Désertions","Soldats","Violences","Psychopate","Menace","Défis","Courtoisie"]},
+  "Juridico-commercial":{color:"#818cf8",keys:["Vente","Achat","Contrat","Accord","Escroquerie","Fraude","Vol","Dette","Dettes","Hypothèque","Immobilier","Héritage","Bail","Succession","Saisie","Squatte","Arrestation","Evacuation","Contestation","Édit","Ordonnance","Ordonnances","Tarif","Exemption","Interdiction","Limitation","Réglementation","Ouverture","Autorisation","Construction","Location","Opposition","Litige","Confrérie","Enseigne","Affaire","Prix","Refus","Abus de pouvoir","Inspection","Siège","Burguet","Aggrandissement","Besoins"]},
+  "Fiscalité & finance":{color:"#34d399",keys:["Taxe","Impôts","Finances","Argent","Amende","Débits Alcools","Droit","Consommation"]},
+  "Religion & mœurs":{color:"#fb923c",keys:["Religieux","Religion","Ivresse","Ivrognerie","Jeu","Jeux","Prostitution","Fête","Fêtes","Addiction","Obscur","Juridiction","Réformé","Fuite","Lecture","Carte"]},
+  "Sans mots-clés":{color:"#4a5880",keys:["Sans mots-clés"]}
 };
 
-function switchTab(tab, el) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+// ═══════════════ SEARCH ═══════════════
+function enterDash(){
+  document.getElementById('splash').classList.add('hide');
+  setTimeout(()=>document.getElementById('splash').style.display='none',700);
+}
+setTimeout(()=>{ if(document.getElementById('splash').style.display!=='none') enterDash(); },3500);
+
+// ═══════════════ MODE CLAIR ═══════════════
+function toggleMode(){
+  lightMode=!lightMode;
+  document.body.classList.toggle('light',lightMode);
+  document.getElementById('mode-btn').textContent=lightMode?'🌙 Sombre':'☀️ Clair';
+}
+
+// ═══════════════ TABS ═══════════════
+function switchTab(tab,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('tab-'+tab).classList.add('active');
-  if(tab === 'details') buildDetailsTab();
-  if(tab === 'analyse') buildAnalyseTab();
+  if(tab==='details') buildDetailsTab();
+  if(tab==='analyse') buildAnalyseTab();
+  if(tab==='timeline') buildTimeline();
+  if(tab==='search') initSearch();
 }
 
-let analyseGenerated = false;
-let lastAnalyseTotal = 0;
-
-async function buildAnalyseTab() {
-  // Ne régénère que si les données ont changé
-  if(analyseGenerated && lastAnalyseTotal === globalTotal) return;
-
-  const container = document.getElementById('tab-analyse');
-  const wrap = container.querySelector('.wrap');
-
-  // Affiche un état de chargement
-  wrap.innerHTML = `
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:20px;">
-      <div class="spinner"></div>
-      <div style="font-size:14px;color:var(--muted2)">Claude analyse votre corpus en temps réel…</div>
-      <div style="font-size:12px;color:var(--muted);max-width:400px;text-align:center">Génération d'une analyse historiographique basée sur les <strong style="color:var(--white)">${globalTotal}</strong> archives du corpus</div>
-    </div>`;
-
-  // Prépare le résumé des données pour Claude
-  const kw = globalKwCounter;
-  const top10kw = Object.entries(kw).sort((a,b)=>b[1]-a[1]).slice(0,20).map(([k,n])=>`${k}: ${n}`).join(', ');
-  const topLieux = Object.entries(globalLocCounter).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([l,n])=>`${l}: ${n}`).join(', ');
-  const decades = [1590,1600,1610,1620,1630,1650,1660,1670,1680,1690,1700,1710].map(d=>`${d}s: ${globalDecTotal[d]||0} docs (${globalDecViol[d]||0} violents)`).join(' | ');
-
-  const prompt = `Tu es un historien spécialisé dans l'histoire sociale de la France et des Pays-Bas méridionaux à l'époque moderne. Tu aides Valère Fourreau, étudiant en master d'histoire publique, à rédiger l'analyse de son mémoire sur les débits de boisson en Flandre au XVIIe siècle.
-
-Voici les données statistiques extraites en temps réel de son corpus archivistique (${globalTotal} archives, 1592-1715, fonds ADN/AML/AMArmentières) :
-
-STATISTIQUES GÉNÉRALES :
-- Total archives : ${globalTotal}
-- ADN : ${globalArchiveCounter["ADN"]||0} archives | AML : ${globalArchiveCounter["AML"]||0} archives | AMArmentières : ${globalArchiveCounter["AMArmentières"]||0} archives
-- Archives sans mots-clés : ${kw["Sans mots-clés"]||0}
-
-MOTS-CLÉS (occurrences) :
-${top10kw}
-
-VILLES CITÉES :
-${topLieux}
-
-ÉVOLUTION CHRONOLOGIQUE :
-${decades}
-
-CHIFFRES CLÉS :
-- Violence : ${kw["Violence"]||0} occurrences (${Math.round((kw["Violence"]||0)/globalTotal*100)}% du corpus)
-- Meurtre : ${kw["Meurtre"]||0} | Arme : ${kw["Arme"]||0} | Couteau : ${kw["Couteau"]||0}
-- Militaire : ${kw["Militaire"]||0} | Groupe : ${kw["Groupe"]||0} | Injure : ${kw["Injure"]||0}
-- Autorisation : ${kw["Autorisation"]||0} | Fraude : ${kw["Fraude"]||0} | Taxe : ${kw["Taxe"]||0}
-- Ivresse : ${kw["Ivresse"]||0} | Ivrognerie : ${kw["Ivrognerie"]||0} | Prostitution : ${kw["Prostitution"]||0}
-- Jeu : ${kw["Jeu"]||0} | Religion/Religieux : ${(kw["Religion"]||0)+(kw["Religieux"]||0)}
-
-Rédige une analyse historiographique structurée en 4 axes pour appuyer ce mémoire de master. Chaque axe doit :
-1. Avoir un titre académique précis
-2. Interpréter les données chiffrées ci-dessus (cite les chiffres exacts)
-3. Les mettre en perspective historiographique (pratiques sociales, contrôle institutionnel, etc.)
-4. Inclure une conclusion synthétique sur les tensions structurelles du corpus
-
-Les 4 axes sont :
-- Axe I : Les cabarets comme foyers de violence et criminalité
-- Axe II : Le contrôle institutionnel des débits de boisson  
-- Axe III : Les cabarets comme espaces de sociabilité transgressive
-- Axe IV : Évolution chronologique et géographie des débits
-
-Termine par une synthèse générale de 2-3 paragraphes sur ce que révèle ce corpus pour l'histoire sociale des Flandres au XVIIe siècle.
-
-IMPORTANT : Réponds uniquement en JSON avec cette structure exacte, sans backticks ni markdown :
-{
-  "intro": "texte introduction général (2-3 phrases)",
-  "axes": [
-    {
-      "num": "I",
-      "titre": "titre de l'axe",
-      "soustitre": "sous-titre court",
-      "couleur": "#f87171",
-      "stats": ["stat 1", "stat 2", "stat 3"],
-      "paragraphes": ["paragraphe 1", "paragraphe 2", "paragraphe 3"],
-      "citation": "citation d'archive pertinente ou formule tirée des données",
-      "source": "référence archivistique"
-    }
-  ],
-  "synthese": ["paragraphe synthèse 1", "paragraphe synthèse 2", "paragraphe synthèse 3"]
-}`;
-
-  try {
-    const response = await fetch("https://archive-dashboard-cabaret.garancefrr.workers.dev/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-opus-4-5",
-        max_tokens: 4000,
-        messages: [{ role: "user", content: prompt }]
-      })
-    });
-
-    const rawText = await response.text();
-console.log("Réponse brute worker :", rawText.slice(0,500));
-const data = JSON.parse(rawText);
-    
-    console.log("data brut :", JSON.stringify(data));
-if(!data.content) throw new Error("Réponse invalide : " + JSON.stringify(data).slice(0,300));
-const text = data.content.map(i => i.text || "").join("");
-
-    let parsed;
-try {
-  const clean = text.replace(/```json[\s\S]*?```|```/g, "").trim();
-  const jsonMatch = clean.match(/\{[\s\S]*\}/);
-  if(!jsonMatch) throw new Error("Aucun JSON trouvé dans la réponse");
-  parsed = JSON.parse(jsonMatch[0]);
-  if(!parsed.axes) throw new Error("Structure JSON incorrecte");
-} catch(e) {
-  throw new Error("Parsing JSON échoué : " + e.message + " — Réponse : " + text.slice(0,200));
-}
-
-    renderAnalyse(wrap, parsed);
-    analyseGenerated = true;
-    lastAnalyseTotal = globalTotal;
-
-  } catch(e) {
-    console.error("Erreur API Claude :", e);
-    wrap.innerHTML = `
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;text-align:center;">
-        <div style="font-size:14px;color:var(--red);margin-bottom:12px">Erreur de génération</div>
-        <div style="font-size:13px;color:var(--muted2);margin-bottom:16px">${e.message}</div>
-        <button class="btn-refresh" onclick="analyseGenerated=false;buildAnalyseTab()">↻ Réessayer</button>
-      </div>`;
-  }
-}
-
-function renderAnalyse(wrap, data) {
-  const axeColors = ["#f87171","#818cf8","#fb923c","#22d3ee"];
-  const axeNumBg  = ["rgba(248,113,113,.15)","rgba(129,140,248,.15)","rgba(251,146,60,.15)","rgba(34,211,238,.15)"];
-
-  console.log("Réponse Claude :", JSON.stringify(data));
-  const axesHTML = (data.axes||[]).map((axe, i) => {
-    const color  = axe.couleur || axeColors[i] || "#818cf8";
-    const numBg  = axeNumBg[i] || "rgba(129,140,248,.15)";
-    const stats  = (axe.stats||[]).map(s => `<span class="axe-stat" style="background:${color}22;color:${color}">${s}</span>`).join('');
-    const paras  = (axe.paragraphes||[]).map(p => `<p>${p}</p>`).join('');
-
-    return `
-      <div class="axe-card">
-        <div class="axe-header">
-          <div class="axe-num" style="background:${numBg};color:${color}">${axe.num}</div>
-          <div>
-            <div class="axe-title">${axe.titre}</div>
-            <div class="axe-subtitle">${axe.soustitre||""}</div>
-          </div>
-        </div>
-        <div class="axe-stats">${stats}</div>
-        <div class="axe-body">${paras}
-          ${axe.citation ? `<div class="axe-quote">${axe.citation}<cite>${axe.source||""}</cite></div>` : ""}
-        </div>
-      </div>`;
-  }).join('');
-
-  const syntheseHTML = (data.synthese||[]).map(p=>`<p>${p}</p>`).join('');
-  const topKw = Object.entries(globalKwCounter).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,n])=>`${k} (${n})`).join(' · ');
-
-  wrap.innerHTML = `
-    <div class="analyse-intro">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:10px;">
-        <div class="analyse-intro-title">Analyse historiographique du corpus</div>
-        <button class="btn-refresh" onclick="analyseGenerated=false;buildAnalyseTab()" style="font-size:11px;padding:5px 12px;">
-          ↻ Régénérer l'analyse
-        </button>
-      </div>
-      <div class="analyse-intro-sub">${data.intro||""}</div>
-      <div class="analyse-meta">
-        <span class="analyse-meta-tag" style="background:rgba(129,140,248,.15);color:#818cf8">Master Histoire Publique</span>
-        <span class="analyse-meta-tag" style="background:rgba(52,211,153,.15);color:#34d399">Flandres · XVIIe siècle</span>
-        <span class="analyse-meta-tag" style="background:rgba(251,146,60,.15);color:#fb923c">Débits de boisson</span>
-        <span class="analyse-meta-tag" style="background:rgba(74,88,128,.3);color:#6b7fa8">Corpus : ${globalTotal} archives · Mise à jour : ${new Date().toLocaleTimeString('fr-FR')}</span>
-      </div>
-    </div>
-
-    <div class="axes-grid">${axesHTML}</div>
-
-    <div class="conclusion-card">
-      <div class="conclusion-title">
-        <span style="width:4px;height:24px;background:linear-gradient(180deg,#818cf8,#34d399);border-radius:2px;display:inline-block"></span>
-        Synthèse et perspectives
-      </div>
-      <div class="conclusion-body">${syntheseHTML}</div>
-    </div>
-
-    <div class="sources-note">
-      <strong>Note sur les sources :</strong> Ce corpus est constitué de ${globalTotal} archives issues des Archives Départementales du Nord (ADN, ${globalArchiveCounter["ADN"]||0} documents), des Archives Municipales de Lille (AML, ${globalArchiveCounter["AML"]||0} documents) et des Archives Municipales d'Armentières (AMArmentières, ${globalArchiveCounter["AMArmentières"]||0} document). 
-      Termes les plus fréquents : ${topKw}. 
-      Analyse générée par intelligence artificielle le ${new Date().toLocaleString('fr-FR')} — données collectées par <strong>Valère Fourreau</strong>.
-    </div>`;
-}
-
-function buildDetailsTab() {
-  const el = document.getElementById('details-content');
-  el.innerHTML = "";
-  const totalKw = Object.values(globalKwCounter).reduce((a,b)=>a+b,0);
-  const allCategorized = new Set(Object.values(THEMES).flatMap(t=>t.keys.map(k=>k.toLowerCase())));
-
-  Object.entries(THEMES).forEach(([themeName, theme]) => {
-    const terms = theme.keys
-      .map(k => ({key:k, n:globalKwCounter[k]||0}))
-      .filter(t => t.n > 0)
-      .sort((a,b) => b.n-a.n);
-    if(!terms.length) return;
-
-    const themeTotal = terms.reduce((a,b)=>a+b.n,0);
-    const themePct   = totalKw ? Math.round(themeTotal/totalKw*100) : 0;
-    const maxN       = terms[0].n||1;
-
-    el.innerHTML += `
-      <div class="theme-section">
-        <div class="theme-header">
-          <div class="theme-color-bar" style="background:${theme.color}"></div>
-          <div class="theme-name">${themeName}</div>
-          <div class="theme-total-lbl">${themeTotal} occurrences</div>
-          <span class="theme-pct-badge" style="background:${theme.color}22;color:${theme.color}">${themePct}%</span>
-        </div>
-        <div class="terms-grid">
-          ${terms.map(t=>`
-            <div class="term-card">
-              <div class="term-top">
-                <span class="term-name">${t.key}</span>
-                <span class="term-n" style="color:${theme.color}">${t.n}</span>
-              </div>
-              <div class="term-bar-wrap">
-                <div class="term-bar" style="width:${Math.round(t.n/maxN*100)}%;background:${theme.color}"></div>
-              </div>
-            </div>`).join('')}
-        </div>
-      </div>`;
-  });
-
-  const uncategorized = Object.entries(globalKwCounter)
-    .filter(([k])=>!allCategorized.has(k.toLowerCase()))
-    .sort((a,b)=>b[1]-a[1]);
-
-  if(uncategorized.length > 0) {
-    const maxN = uncategorized[0][1]||1;
-    el.innerHTML += `
-      <div class="theme-section">
-        <div class="theme-header">
-          <div class="theme-color-bar" style="background:#22d3ee"></div>
-          <div class="theme-name">Autres termes</div>
-          <div class="theme-total-lbl">${uncategorized.length} termes distincts</div>
-        </div>
-        <div class="terms-grid">
-          ${uncategorized.map(([k,n])=>`
-            <div class="term-card">
-              <div class="term-top">
-                <span class="term-name">${k}</span>
-                <span class="term-n" style="color:#22d3ee">${n}</span>
-              </div>
-              <div class="term-bar-wrap">
-                <div class="term-bar" style="width:${Math.round(n/maxN*100)}%;background:#22d3ee"></div>
-              </div>
-            </div>`).join('')}
-        </div>
-      </div>`;
-  }
-}
-
-async function loadData() {
-  document.getElementById('last-sync').textContent = "Chargement…";
-  try {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(RANGE)}?key=${API_KEY}`;
-    const res = await fetch(url);
+// ═══════════════ LOAD DATA ═══════════════
+async function loadData(){
+  document.getElementById('last-sync').textContent="Chargement…";
+  try{
+    const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(RANGE)}?key=${API_KEY}`;
+    const res=await fetch(url);
     if(!res.ok) throw new Error("Erreur "+res.status);
-    const json = await res.json();
+    const json=await res.json();
     processData((json.values||[]).filter(r=>r[0]));
-    const now = new Date().toLocaleTimeString('fr-FR');
-    document.getElementById('last-sync').textContent = now;
-    document.getElementById('last-update').textContent = "Dernière synchronisation : "+new Date().toLocaleString('fr-FR');
-  } catch(e) {
-    console.warn("Données statiques :", e.message);
+    document.getElementById('last-sync').textContent=new Date().toLocaleTimeString('fr-FR');
+    document.getElementById('last-update').textContent="Dernière synchronisation : "+new Date().toLocaleString('fr-FR');
+  }catch(e){
+    console.warn("Données statiques :",e.message);
     loadStaticData();
   }
 }
 
-function loadStaticData() {
+function loadStaticData(){
   const s=[
-    ["ADN","16 G 602","","Autorisation - Ouverture","1592","1592","",""],
-    ["ADN","B 1793","","Violence - courtoisie","1601","1601","","Tourcoing"],
-    ["ADN","B 1793","","Violence - Meurtre - Vente","1601","1601","",""],
-    ["ADN","B 1793","","Violence - Meurtre - Vengeance","1601","1601","",""],
-    ["ADN","B 1793","","Violence - Meurtre - Couteau","1601","1601","","Tournai"],
-    ["ADN","B 4795","","Violence - Meurtre - Arme","1606","1606","","Estaires"],
-    ["ADN","B 4796","","Violence - Meurtre - Couteau","1608","1608","",""],
-    ["AML","PAT/159/2903","","Droit - Taxe","1608","1608","","Lille"],
-    ["AML","AG/122/3","","Construction - Besoins","1611","1611","","Lille"],
-    ["AML","AG/1033/3","","Opposition","1613","1613","","Lille"],
-    ["AML","AG/73/4","","Autorisation - Construction - Location","1615","1615","","Lambersart"],
-    ["ADN","B 1803","","Violence - Meurtre - Arme","1616","1616","","Estaires"],
-    ["ADN","B 1803","","Violence - Meurtre - Lecture - Religion","1616","1616","",""],
-    ["ADN","B 1801","","Violence - jeu - carte","1616","1616","",""],
-    ["ADN","B 1801","","Violence - Meurtre - Arme","1616","1616","","Laventie"],
-    ["ADN","B 1801","","Violence - Couteau - Arme","1616","1616","",""],
-    ["ADN","B 4806","","Violence - Couteau - Arme","1618","1618","",""],
-    ["ADN","B 4806","","Violence - Couteau - Arme","1618","1618","",""],
-    ["ADN","B 4806","","Violence - Meurtre - jeux","1618","1618","",""],
-    ["ADN","B 4798","","Violence - Meurtre - Injure","1619","1619","",""],
-    ["ADN","8B1 / 17036","","Violence - Agression - Meurtre","1620","1620","",""],
-    ["ADN","B 1656","","Autorisation - Ouverture - Taverne","1620","1620","",""],
-    ["ADN","B 1652","","Impôts - Taxe","1621","1621","","Valenciennes"],
-    ["ADN","8B1 / 17032","","Violence - Agression - Meurtre","1622","1622","",""],
-    ["ADN","4 G 2148","A faire","Obscur - Prostitution","1627","1627","",""],
-    ["ADN","8B1 /13125","","Violence - Meurtre - Arme - Couteau","1634","1634","","Lille"],
-    ["ADN","8B1 / 17026","","Violence - Meurtre - Dette","1639","1639","",""],
-    ["AMArmentières","FF 39","","Abus de pouvoir","1655","1655","","Armentières"],
-    ["ADN","3 H 148","","Achat - Vente - Religieux","1662","1662","","Cambrai"],
-    ["AML","AG/67/10","","Impôts - Taxe - Aggrandissement","1668","1668","",""],
-    ["ADN","8B1 / 15509","","Autorisation - Ouverture - Ordonnances","1672","1672","","Tournai"],
-    ["AML","AG/68/2","","Impôts - Taxe","1672","1672","",""],
-    ["ADN","1 G 129","","Jeu - Religieux - Ivresse - Violence","1678","1678","","Douai"],
-    ["ADN","8B1 / 12288","","Location - Abimée - Étable","1678","1678","",""],
-    ["AML","AG/101/19","","Ordonnance - Tarif","1680","1680","",""],
-    ["ADN","8B1 / 13359","","Fêtes - Réglementation - Amende","1682","1682","","Beaurieux"],
-    ["ADN","8B1 / 4443","","Religion - Fête - Juridiction","1682","1682","","Beaurieux"],
-    ["ADN","8B1 / 16439","","Violence - Injure","1683","1683","",""],
-    ["ADN","8B1 / 2567","","Fraude","1684","1684","",""],
-    ["ADN","8B1 / 12572","","Violence - Arme - Militaire - Ivrognerie - Injure - Groupe","1685","1685","",""],
-    ["ADN","8B1 / 14","","Vol","1686","1686","","Lille"],
-    ["ADN","8B1 / 14","","Vol","1687","1687","","Lille"],
-    ["ADN","8B1 / 24453","","Fraude - Vol","1687","1687","","Douai"],
-    ["ADN","8B1 / 2545","","Fraude","1688","1688","",""],
-    ["ADN","8B1 / 5494","","Vente","1689","1689","",""],
-    ["ADN","8B1 / 3946","","Arrestation - Ivrognerie - Amende","1690","1690","",""],
-    ["ADN","8B1 / 4181","","Achat - Vente - Hypothèque - Famille","1690","1690","",""],
-    ["AML","FF12122","","Violence - meurtre - Arme","1690","1690","",""],
-    ["ADN","8B1 / 27854","","Meurtre - Complicité - Militaire","1691","1691","","Nomain"],
-    ["ADN","8B1 / 27857 s/s 1","","Vol - Fraude","1691","1691","",""],
-    ["ADN","8B1 / 27857 s/s 5","","Violence - Bagarre - Défis - Arme","1691","1691","",""],
-    ["AML","AG/570/13","","Bail - Prix","1691","1691","","Lille"],
-    ["ADN","8B1 / 16677","","Violence - groupe - Succession","1692","1692","","Lille"],
-    ["ADN","8B1 / 17354","","Violence - Effraction - Arme - Meurtre","1692","1692","","Cambrai"],
-    ["ADN","8B1 / 7113","","Vente - Immobilier","1693","1693","","Lille"],
-    ["ADN","8B1 / 31104","","Réglementation - Ouverture - Limitation","1693","1693","",""],
-    ["AML","AG/958/20","","Fraude - Prix","1694","1694","","Lille"],
-    ["ADN","8B1 / 24029","","Accord - Contrat - affaire - Escroquerie","1695","1695","","Lille"],
-    ["ADN","8B1 / 2421","","Violence - Meurtre - Injure","1695","1695","","Douai"],
-    ["ADN","8B1 / 24036","","Accord - Contrat - Escroquerie","1695","1695","","Lille"],
-    ["AML","AG/450/12","","Violence - Arme - Groupe - Bourgeois","1695","1695","","Lille"],
-    ["ADN","8B1 / 31361","","Fuite - Réformé","1696","1696","","Lille"],
-    ["ADN","8B1 / 29564","A faire","Soldats - Désertions - Violences - Militaire","1696","1696","",""],
-    ["ADN","8B1 / 31356","","Violence - Meurtre - Corruption","1696","1696","",""],
-    ["AML","AG/1035/1","","Autorisation - Religion","1696","1696","","Lille"],
-    ["AML","AG/80/9","","Violence - Couteau - Arme - Injure","1696","1696","","Lille"],
-    ["ADN","8B1 / 14861","","Exemption - Taxe","1697","1697","",""],
-    ["ADN","8B1 / 17386","","Violence - Arme - Couteau - Militaire","1697","1697","",""],
-    ["ADN","8B1 / 30480","","Achat - Vente - Hypothèque - Famille","1697","1697","",""],
-    ["ADN","8B1 / 4236","","Location - Refus","1697","1697","","Valenciennes"],
-    ["ADN","1 G 131","","Religieux - Ivresse - Prostitution","1697","1697","",""],
-    ["ADN","8B1 / 16547","","Violence - Arme - Militaire - Ivrognerie - Injure - Groupe - Menace - Ivresse - couteau","1698","1698","","Nomain"],
-    ["ADN","8B1 / 5916","","Finances - Dettes","1699","1699","",""],
-    ["ADN","8B1 / 28406","","Querelle - Cabaretier - insulte - prostitution","1699","1699","","Douai"],
-    ["ADN","8B1 / 11936","","Inspection - Impôts","1699","1699","","Ypres"],
-    ["AML","AG/1034/7","","Construction - Autorisation - Voisins","1699","1699","","Lille"],
-    ["AML","AG/1034/9","","Autorisation - Enseigne","1699","1699","","Lille"],
-    ["ADN","8B1 / 15821","","Violence - Arme - Prémédité","1700","1700","",""],
-    ["ADN","8B1 / 16578","","Édit - Dette - Contestation","1700","1700","","Valenciennes"],
-    ["AML","AG/9/1","","Confrérie - Siège - Autorisation","1700","1700","",""],
-    ["ADN","8B1 / 16876","","Vente - Immobilier","1701","1701","",""],
-    ["ADN","8B1/ 5578","","Evacuation - Burguet","1701","1701","","Lille"],
-    ["ADN","8B1 / 24190","","Violence - meurtre","1703","1703","",""],
-    ["AML","AG/1035/3","","Autorisation - Interdiction - Religieux - Réputation","1703","1703","","Lille"],
-    ["ADN","8B1 / 3503","","Accord - Contrat - Ivrognerie","1704","1704","","Lille"],
-    ["ADN","8B1 / 28418","","Violence - Bagarre","1704","1704","",""],
-    ["ADN","8B1 / 30605","","Violence","1704","1704","",""],
-    ["AML","AG/76/9","","Squatte - Saisie","1704","1704","","Lambersart"],
-    ["ADN","8B1 / 102","","Violence","1705","1705","",""],
-    ["ADN","12 H 106","","Autorisation - Ouverture - Litige","1705","1705","",""],
-    ["ADN","8B1/ 26529","","Interdiction - consommation","1705","1705","",""],
-    ["ADN","8B1 / 16547","","Violence - arme","1706","1706","",""],
-    ["AML","AG/399/15","","Achat - Héritage","1706","1706","","Lille"],
-    ["ADN","8B1 / 17459","","Violence - Meurtre - Duel - Militaire - Arme","1707","1707","",""],
-    ["ADN","8B1 / 31406","","Violence - Meurtre - Jeu - Fête","1708","1708","","Nomain"],
-    ["AML","FF 12122 (p 267)","","Violence - Incendie","1708","1708","",""],
-    ["ADN","8B1 / 200","","Vente - Vol","1709","1709","",""],
-    ["AML","AG/1034/6","","Autorisation - Peur - Enseigne","1709","1709","","Lille"],
-    ["ADN","8B1 / 9104","","Vol","1710","1710","","Douai"],
-    ["ADN","8B1 / 14255 s/s 5","","Violence - Arme - meurtre - complicité","1712","1712","",""],
-    ["ADN","8B1 / 15598 s/s 12","","Violence - Militaire","1712","1712","",""],
-    ["ADN","8B1 / 5502","","Religieux - Ivresse - Escroquerie","1713","1713","","Valenciennes"],
-    ["ADN","8B1 / 28864","","Dette - Jeu - argent - Addiction","1714","1714","","Valenciennes"],
-    ["ADN","8B1 / 15577","","Violence - Bagarre - Argent - Injure","1714","1714","",""],
-    ["ADN","8B1 / 15644","","Violence - Religieux - Couteau - Arme - Groupe","1714","1714","",""],
-    ["ADN","8B1 / 30572","","Violence - Arme - groupe - Ivresse - Sang","1715","1715","",""],
+    ["ADN","16 G 602","","Autorisation - Ouverture","1592","1592","Autorisations de tenir taverne",""],
+    ["ADN","B 1793","","Violence - courtoisie","1601","1601","Blondel a vu des jeunes fils emmenant des jeunes filles","Taverne à Tourcoing"],
+    ["ADN","B 1793","","Violence - Meurtre - Vente","1601","1601","Sulpice a mortellement blessé Delerue",""],
+    ["ADN","B 1793","","Violence - Meurtre - Vengeance","1601","1601","Desmazière a tué Desains car ce dernier est le tueur de son frère","Cabaret du Biz, Motte"],
+    ["ADN","B 1793","","Violence - Meurtre - Couteau","1601","1601","Parent a lancé un réchauffoir et l'a planté avec un couteau","Tournai"],
+    ["ADN","B 4795","","Violence - Meurtre - Arme","1606","1606","Jean Saige a attaqué Boulenguier avec un pieu","Estaires"],
+    ["ADN","B 4796","","Violence - Meurtre - Couteau","1608","1608","Nicolas sort son couteau et plante Jonas",""],
+    ["AML","PAT/159/2903","","Droit - Taxe","1608","1608","Protestation du Magistrat contre droits sur la bière","Lille"],
+    ["AML","AG/122/3","","Construction - Besoins","1611","1611","Leroux veut créer un cabaret rue de St-Pierre","Lille"],
+    ["AML","AG/1033/3","","Opposition","1613","1613","Opposition du magistrat à l'érection d'un cabaret","Lille"],
+    ["AML","AG/73/4","","Autorisation - Construction - Location","1615","1615","Henry veut faire construire un cabaret à Lambersart","Lambersart"],
+    ["ADN","B 1803","","Violence - Meurtre - Arme","1616","1616","Beccue a mortellement blessé Letaille avec un pot","Estaires"],
+    ["ADN","B 1803","","Violence - Meurtre - Lecture - Religion","1616","1616","Dauchy a frappé mortellement Delemaire, le traitant d'hérétique",""],
+    ["ADN","B 1801","","Violence - jeu - carte","1616","1616","Druarl a blessé Hollaind aux cartes",""],
+    ["ADN","B 1801","","Violence - Meurtre - Arme","1616","1616","Vielle a blessé Saingier d'un coup de pied","Laventie"],
+    ["ADN","B 1801","","Violence - Couteau - Arme","1616","1616","Violet a frappé d'un coup de poignard Gilles Hatté",""],
+    ["ADN","B 4806","","Violence - Couteau - Arme","1618","1618","Frulleux a frappé de deux coups de couteau Boullenguier",""],
+    ["ADN","B 4806","","Violence - Couteau - Arme","1618","1618","Francisco a porté des coups de dagues à l'hôte",""],
+    ["ADN","B 4806","","Violence - Meurtre - jeux","1618","1618","Adam a mortellement blessé le tavernier Georges Gegoux",""],
+    ["ADN","B 4798","","Violence - Meurtre - Injure","1619","1619","Michel Hennot a mortellement blessé Broucquesoy",""],
+    ["ADN","8B1 / 17036","","Violence - Agression - Meurtre","1620","1620","Roch Hermet a attaqué Jacques de Landas avec un bâton",""],
+    ["ADN","B 1656","","Autorisation - Ouverture - Taverne","1620","1620","Pasquier Van der Cruyce, construire une taverne",""],
+    ["ADN","B 1652","","Impôts - Taxe","1621","1621","Levy d'impôt sur les boissons à Valenciennes","Valenciennes"],
+    ["ADN","8B1 / 17032","","Violence - Agression - Meurtre","1622","1622","Delplanques a attaqué Bournisier",""],
+    ["ADN","4 G 2148","A faire","Obscur - Prostitution","1627","1627","Enquête contre le Rouge Aigle","Cambrai"],
+    ["ADN","8B1 /13125","","Violence - Meurtre - Arme - Couteau","1634","1634","Réparation civile pour homicide, coups de couteau","Lille"],
+    ["ADN","8B1 / 17026","","Violence - Meurtre - Dette","1639","1639","Pierre ne voulant pas payer tue Jean Defontaine",""],
+    ["AMArmentières","FF 39","","Abus de pouvoir","1655","1655","Abus de pouvoir des sergents de Lille","Armentières"],
+    ["ADN","3 H 148","","Achat - Vente - Religieux","1662","1662","Jésuites rachètent l'hotellerie Ste-Catherine","Cambrai"],
+    ["AML","AG/67/10","","Impôts - Taxe - Aggrandissement","1668","1668","Cabaret du Petit Halluin assujetti aux impôts",""],
+    ["ADN","8B1 / 15509","","Autorisation - Ouverture - Ordonnances","1672","1672","Débit de bière autorisé par l'Echevinage de Tournai","Tournai"],
+    ["AML","AG/68/2","","Impôts - Taxe","1672","1672","Lettres patentes sur l'impôt sur vin et bière",""],
+    ["ADN","1 G 129","","Jeu - Religieux - Ivresse - Violence","1678","1678","Chapelain Baratte poursuivi pour fréquentation de cabarets","Douai"],
+    ["ADN","8B1 / 12288","","Location - Abimée - Étable","1678","1678","Location de l'étable de l'hotellerie Saint-Antoine",""],
+    ["AML","AG/101/19","","Ordonnance - Tarif","1680","1680","Fixation de l'exemption des archers de la maréchaussée",""],
+    ["ADN","8B1 / 13359","","Fêtes - Réglementation - Amende","1682","1682","Habitants accusés d'aller au cabaret pendant les vêpres","Beaurieux"],
+    ["ADN","8B1 / 4443","","Religion - Fête - Juridiction","1682","1682","Contestation compétence sur cabaret pendant offices","Beaurieux"],
+    ["ADN","8B1 / 16439","","Violence - Injure","1683","1683","Coups et blessure à la sortie de la taverne du Mortier",""],
+    ["ADN","8B1 / 2567","","Fraude","1684","1684","Abus et fraude aux impôts sur les bières",""],
+    ["ADN","8B1 / 12572","","Violence - Arme - Militaire - Ivrognerie - Injure - Groupe","1685","1685","Fattrez a cassé la jambe de Jean Desfresnes",""],
+    ["ADN","8B1 / 14","","Vol","1686","1686","Cambriolage de l'auberge Marenbourg à Lille","Lille"],
+    ["ADN","8B1 / 14","","Vol","1687","1687","Opposition à la vente de meubles saisis à l'auberge du Louvre","Lille"],
+    ["ADN","8B1 / 24453","","Fraude - Vol","1687","1687","Saisie pour dettes contractées auprès d'un hôtelier","Douai"],
+    ["ADN","8B1 / 2545","","Fraude","1688","1688","Refus de laisser pénétrer le fermier des droits",""],
+    ["ADN","8B1 / 5494","","Vente","1689","1689","Vente judiciaire d'un cabaret à Roubaix","Roubaix"],
+    ["ADN","8B1 / 3946","","Arrestation - Ivrognerie - Amende","1690","1690","Prise de corps pour paiement d'amende, avoir bu après 21h",""],
+    ["ADN","8B1 / 4181","","Achat - Vente - Hypothèque - Famille","1690","1690","Vente aux enchères de l'hôtellerie de l'écu de France",""],
+    ["AML","FF12122","","Violence - meurtre - Arme","1690","1690","Meurtre d'un cabaretier",""],
+    ["ADN","8B1 / 27854","","Meurtre - Complicité - Militaire","1691","1691","Homicide de Jean de Wavrin par les frères Potier","Nomain"],
+    ["ADN","8B1 / 27857 s/s 1","","Vol - Fraude","1691","1691","Vol d'un poulain dans l'écurie d'un cabaret",""],
+    ["ADN","8B1 / 27857 s/s 5","","Violence - Bagarre - Défis - Arme","1691","1691","Coup de couteau dans un cabaret à la Motte-au-Bois",""],
+    ["AML","AG/570/13","","Bail - Prix","1691","1691","Bail du cabaret du petit hôtel accordé à Nicolas Bino","Lille"],
+    ["ADN","8B1 / 16677","","Violence - groupe - Succession","1692","1692","Querelle dans un cabaret à propos d'une succession","Lille"],
+    ["ADN","8B1 / 17354","","Violence - Effraction - Arme - Meurtre","1692","1692","Rémission de l'homicide d'Adrien Taisne","Cambrai"],
+    ["ADN","8B1 / 7113","","Vente - Immobilier","1693","1693","Vente du cabaret La bourse d'argent","Lille"],
+    ["ADN","8B1 / 31104","","Réglementation - Ouverture - Limitation","1693","1693","Obligation d'avoir des lettres de permission",""],
+    ["AML","AG/958/20","","Fraude - Prix","1694","1694","Bières non taxées retrouvées et confisquées","Lille"],
+    ["ADN","8B1 / 24029","","Accord - Contrat - affaire - Escroquerie","1695","1695","Escroquerie sur une livraison de sel au cabaret","Lille"],
+    ["ADN","8B1 / 2421","","Violence - Meurtre - Injure","1695","1695","Augustin a tué Jean Baptiste Salomé","Douai"],
+    ["ADN","8B1 / 24036","","Accord - Contrat - Escroquerie","1695","1695","De Gauerrelle a vendu du sel sans livrer","Lille"],
+    ["AML","AG/450/12","","Violence - Arme - Groupe - Bourgeois","1695","1695","Hansart a maltraité des particuliers dans un cabaret","Lille"],
+    ["ADN","8B1 / 31361","","Fuite - Réformé","1696","1696","Protestants arrêtés dans un cabaret à Lille","Lille"],
+    ["ADN","8B1 / 29564","A faire","Soldats - Désertions - Violences - Militaire","1696","1696","Soldats wallons déserteurs, violences au cabaret",""],
+    ["ADN","8B1 / 31356","","Violence - Meurtre - Corruption","1696","1696","Bailli corrompu pour classer un homicide",""],
+    ["AML","AG/1035/1","","Autorisation - Religion","1696","1696","Benoit Tournier autorisé à tenir cabaret","Lille"],
+    ["AML","AG/80/9","","Violence - Couteau - Arme - Injure","1696","1696","Caillou a donné un coup de couteau à Provinage","Lille"],
+    ["ADN","8B1 / 14861","","Exemption - Taxe","1697","1697","Exemption du droit de chaussée pour les cabaretiers",""],
+    ["ADN","8B1 / 17386","","Violence - Arme - Couteau - Militaire","1697","1697","Blessure au cabaret avec un couteau, Coutiches",""],
+    ["ADN","8B1 / 30480","","Achat - Vente - Hypothèque - Famille","1697","1697","Liquidation de l'hôtellerie du cerf à Maubeuge","Maubeuge"],
+    ["ADN","8B1 / 4236","","Location - Refus","1697","1697","Marie-Pierre occupe l'hôtel de Maingoval sans payer","Valenciennes"],
+    ["ADN","1 G 131","","Religieux - Ivresse - Prostitution","1697","1697","Basile Du Bron, chapelain poursuivi pour cabarets et filles",""],
+    ["ADN","8B1 / 16547","","Violence - Arme - Militaire - Ivrognerie - Injure - Groupe - Menace - Ivresse - couteau","1698","1698","Wacquie a menacé de gorger les bourgeois avec son couteau","Nomain"],
+    ["ADN","8B1 / 5916","","Finances - Dettes","1699","1699","Dettes de cabaret",""],
+    ["ADN","8B1 / 28406","","Querelle - Cabaretier - insulte - prostitution","1699","1699","Conflit entre cabaretiers, accusation de prostitution","Douai"],
+    ["ADN","8B1 / 11936","","Inspection - Impôts","1699","1699","Inspection des brandevins, vins et alcool","Ypres"],
+    ["AML","AG/1034/7","","Construction - Autorisation - Voisins","1699","1699","Jean Delebarre refuse cabaret près du marché aux Poissons","Lille"],
+    ["AML","AG/1034/9","","Autorisation - Enseigne","1699","1699","Requête pour ériger un cabaret sous l'enseigne du Soleil Levant","Lille"],
+    ["ADN","8B1 / 15821","","Violence - Arme - Prémédité","1700","1700","Pierre a tiré sur Matthieu à la sortie du cabaret",""],
+    ["ADN","8B1 / 16578","","Édit - Dette - Contestation","1700","1700","Paiement pour jouir des privilèges d'hôtellerie","Valenciennes"],
+    ["AML","AG/9/1","","Confrérie - Siège - Autorisation","1700","1700","Règlement pour la confrérie d'arbalétriers au Petit Trou",""],
+    ["ADN","8B1 / 16876","","Vente - Immobilier","1701","1701","Achat d'une auberge La Longue Allée à Ypres","Ypres"],
+    ["ADN","8B1/ 5578","","Evacuation - Burguet","1701","1701","Conflit de voisinage, puisard empiétant","Lille"],
+    ["ADN","8B1 / 24190","","Violence - meurtre","1703","1703","Coups et blessures après dispute sur transport de bois",""],
+    ["AML","AG/1035/3","","Autorisation - Interdiction - Religieux - Réputation","1703","1703","Interdiction du cabaret du Lion d'or de Charles Hochepied","Lille"],
+    ["ADN","8B1 / 3503","","Accord - Contrat - Ivrognerie","1704","1704","Contrat signé au cabaret contesté pour ivresse","Lille"],
+    ["ADN","8B1 / 28418","","Violence - Bagarre","1704","1704","Querelle, coups et blessures à la sortie du cabaret",""],
+    ["ADN","8B1 / 30605","","Violence","1704","1704","Querelle dans un cabaret, prise à partie du juge",""],
+    ["AML","AG/76/9","","Squatte - Saisie","1704","1704","Saisie d'un cabaret à Lambersart squatté","Lambersart"],
+    ["ADN","8B1 / 102","","Violence","1705","1705","Coups et blessures à plaie ouverte, rixe au cabaret",""],
+    ["ADN","12 H 106","","Autorisation - Ouverture - Litige","1705","1705","Nicolas François interdit de vendre de la bière",""],
+    ["ADN","8B1/ 26529","","Interdiction - consommation","1705","1705","Interdiction pour habitants de fréquenter cabarets d'Artois",""],
+    ["ADN","8B1 / 16547","","Violence - arme","1706","1706","Querelle, coup de crosse de fusil à Planques",""],
+    ["AML","AG/399/15","","Achat - Héritage","1706","1706","Volant réclame la somme pour le cabaret de sa mère","Lille"],
+    ["ADN","8B1 / 17459","","Violence - Meurtre - Duel - Militaire - Arme","1707","1707","Duel entre lieutenants après querelle au cabaret",""],
+    ["ADN","8B1 / 31406","","Violence - Meurtre - Jeu - Fête","1708","1708","Blessure mortelle au cabaret de Simon Dubus à Nomain","Nomain"],
+    ["AML","FF 12122 (p 267)","","Violence - Incendie","1708","1708","Incendie du cabaret du Chat à Wambrechies",""],
+    ["ADN","8B1 / 200","","Vente - Vol","1709","1709","Restitution de peaux de cuirs confiées en dépôt-vente",""],
+    ["AML","AG/1034/6","","Autorisation - Peur - Enseigne","1709","1709","Apostille autorisant Martin Daire à tenir cabaret","Lille"],
+    ["ADN","8B1 / 9104","","Vol","1710","1710","Vol dans l'auberge l'Esprenier à Douai","Douai"],
+    ["ADN","8B1 / 14255 s/s 5","","Violence - Arme - meurtre - complicité","1712","1712","Tir de sang froid sur Toussaint Tilman",""],
+    ["ADN","8B1 / 15598 s/s 12","","Violence - Militaire","1712","1712","Rixe à la sortie du cabaret",""],
+    ["ADN","8B1 / 5502","","Religieux - Ivresse - Escroquerie","1713","1713","Donation faite en état d'ivresse par un abbé","Valenciennes"],
+    ["ADN","8B1 / 28864","","Dette - Jeu - argent - Addiction","1714","1714","Dettes de jeu au billard","Valenciennes"],
+    ["ADN","8B1 / 15577","","Violence - Bagarre - Argent - Injure","1714","1714","Rixe à propos d'argent, coups et blessures",""],
+    ["ADN","8B1 / 15644","","Violence - Religieux - Couteau - Arme - Groupe","1714","1714","Blessure à la tête pendant rixe entre villages à Sautain",""],
+    ["ADN","8B1 / 30572","","Violence - Arme - groupe - Ivresse - Sang","1715","1715","Bagarre au cabaret, blessure à sang coulant",""],
     ["ADN","5 G 509","A faire","","1594","","",""],
     ["ADN","3 J 273","","","","","",""],
     ["AMArmentières","FF 48","","","1572","","","Armentières"],
@@ -697,86 +560,72 @@ function loadStaticData() {
     ["AML","BH 7","","","1713","","",""],
   ];
   processData(s);
-  document.getElementById('last-sync').textContent = "données statiques";
-  document.getElementById('last-update').textContent = "Mode statique — ajoutez votre clé API pour le mode live";
+  document.getElementById('last-sync').textContent="données statiques";
+  document.getElementById('last-update').textContent="Mode statique — ajoutez votre clé API pour le mode live";
 }
 
-function processData(rows) {
-  const kwCounter      = {};
-  const archiveCounter = {};
-  const archiveNoKw    = {};
-  const locCounter     = {};
-  const decadeTotal    = {};
-  const decadeViol     = {};
-  let years=[]; let afaire=0;
+// ═══════════════ PROCESS DATA ═══════════════
+function processData(rows){
+  const kwCounter={}, archiveCounter={}, archiveNoKw={}, locCounter={}, decadeTotal={}, decadeViol={};
+  let years=[], afaire=0;
+  globalRows=rows;
 
-  rows.forEach(r => {
-    const archive = (r[0]||"").trim();
-    const etat    = (r[2]||"").trim();
-    const kws     = (r[3]||"").trim();
-    const yr      = parseInt((r[5]||r[4]||"").trim());
-    const lieu    = (r[7]||"").trim();
+  rows.forEach(r=>{
+    const archive=(r[0]||"").trim();
+    const etat=(r[2]||"").trim();
+    const kws=(r[3]||"").trim();
+    const yr=parseInt((r[5]||r[4]||"").trim());
+    const lieu=(r[7]||"").trim();
 
     if(etat.toLowerCase()==="a faire") afaire++;
-    if(archive) {
-      archiveCounter[archive] = (archiveCounter[archive]||0)+1;
-      if(!kws || kws.toLowerCase()==="voir photo")
-        archiveNoKw[archive] = (archiveNoKw[archive]||0)+1;
+    if(archive){
+      archiveCounter[archive]=(archiveCounter[archive]||0)+1;
+      if(!kws||kws.toLowerCase()==="voir photo") archiveNoKw[archive]=(archiveNoKw[archive]||0)+1;
     }
-    if(!kws || kws.toLowerCase()==="voir photo") {
-      kwCounter["Sans mots-clés"] = (kwCounter["Sans mots-clés"]||0)+1;
+    if(!kws||kws.toLowerCase()==="voir photo"){
+      kwCounter["Sans mots-clés"]=(kwCounter["Sans mots-clés"]||0)+1;
     } else {
-      kws.split(" - ").forEach(k => {
-        const kn = k.trim().replace(/-$/,"").trim();
-        if(kn) { const key=kn.charAt(0).toUpperCase()+kn.slice(1); kwCounter[key]=(kwCounter[key]||0)+1; }
+      kws.split(" - ").forEach(k=>{
+        const kn=k.trim().replace(/-$/,"").trim();
+        if(kn){ const key=kn.charAt(0).toUpperCase()+kn.slice(1); kwCounter[key]=(kwCounter[key]||0)+1; }
       });
     }
-    if(lieu) {
-      ["Lille","Douai","Nomain","Valenciennes","Tournai","Cambrai","Beaurieux","Estaires","Armentières","Ypres","Aniche","Orchies","Roubaix","Steenvoorde","Lambersart","Bruxelles","Cassel","Maubeuge"]
-        .forEach(city => { if(lieu.includes(city)) locCounter[city]=(locCounter[city]||0)+1; });
-    }
-    if(!isNaN(yr)) {
+    const CITIES=["Lille","Douai","Nomain","Valenciennes","Tournai","Cambrai","Beaurieux","Estaires","Armentières","Ypres","Aniche","Orchies","Roubaix","Steenvoorde","Lambersart","Bruxelles","Cassel","Maubeuge"];
+    if(lieu) CITIES.forEach(c=>{ if(lieu.includes(c)) locCounter[c]=(locCounter[c]||0)+1; });
+    if(!isNaN(yr)){
       years.push(yr);
       const dec=Math.floor(yr/10)*10;
       decadeTotal[dec]=(decadeTotal[dec]||0)+1;
-      if(kws && /violence|meurtre|agression|homicide/i.test(kws)) decadeViol[dec]=(decadeViol[dec]||0)+1;
+      if(kws&&/violence|meurtre|agression|homicide/i.test(kws)) decadeViol[dec]=(decadeViol[dec]||0)+1;
     }
   });
 
-  globalKwCounter      = kwCounter;
-  globalLocCounter     = locCounter;
-  globalArchiveCounter = archiveCounter;
-  globalDecTotal       = decadeTotal;
-  globalDecViol        = decadeViol;
-  globalTotal          = rows.length;
+  globalKwCounter=kwCounter; globalLocCounter=locCounter; globalArchiveCounter=archiveCounter;
+  globalDecTotal=decadeTotal; globalDecViol=decadeViol; globalTotal=rows.length;
 
-  const total    = rows.length;
-  const violence = kwCounter["Violence"]||0;
-  const meurtres = kwCounter["Meurtre"]||0;
-  const couteau  = kwCounter["Couteau"]||0;
-  const minY     = years.length?Math.min(...years):"—";
-  const maxY     = years.length?Math.max(...years):"—";
+  const violence=kwCounter["Violence"]||0;
+  const meurtres=kwCounter["Meurtre"]||0;
+  const couteau=kwCounter["Couteau"]||0;
+  const minY=years.length?Math.min(...years):"—";
+  const maxY=years.length?Math.max(...years):"—";
 
-  document.getElementById('kpi-total').textContent    = total;
-  document.getElementById('kpi-range').textContent    = minY+" – "+maxY;
-  document.getElementById('kpi-violence').textContent = violence;
-  document.getElementById('kpi-vpct').textContent     = Math.round(violence/total*100)+"% du corpus";
-  document.getElementById('kpi-vpill').textContent    = violence+" occurrences";
-  document.getElementById('kpi-meurtres').textContent = meurtres;
-  document.getElementById('kpi-msub').textContent     = "dont "+couteau+" par couteau";
-  document.getElementById('kpi-fonds').textContent    = Object.keys(archiveCounter).length;
-  document.getElementById('kpi-afaire').textContent   = afaire+" à traiter";
+  document.getElementById('kpi-total').textContent=rows.length;
+  document.getElementById('kpi-range').textContent=minY+" – "+maxY;
+  document.getElementById('kpi-violence').textContent=violence;
+  document.getElementById('kpi-vpct').textContent=Math.round(violence/rows.length*100)+"% du corpus";
+  document.getElementById('kpi-vpill').textContent=violence+" occurrences";
+  document.getElementById('kpi-meurtres').textContent=meurtres;
+  document.getElementById('kpi-msub').textContent="dont "+couteau+" par couteau";
+  document.getElementById('kpi-fonds').textContent=Object.keys(archiveCounter).length;
+  document.getElementById('kpi-afaire').textContent=afaire+" à traiter";
 
-  const srcEl = document.getElementById('sources-grid');
-  srcEl.innerHTML="";
+  // Sources
+  const srcEl=document.getElementById('sources-grid'); srcEl.innerHTML="";
   [{key:"ADN",name:"ADN — Archives Départ. du Nord",color:"#818cf8"},
    {key:"AML",name:"AML — Archives Munic. de Lille",color:"#34d399"},
    {key:"AMArmentières",name:"AMArmentières",color:"#fb923c"}
   ].forEach(s=>{
-    const n=archiveCounter[s.key]||0;
-    const noKw=archiveNoKw[s.key]||0;
-    const avKw=n-noKw;
-    const pct=Math.round(n/total*100);
+    const n=archiveCounter[s.key]||0, noKw=archiveNoKw[s.key]||0, avKw=n-noKw, pct=Math.round(n/rows.length*100);
     srcEl.innerHTML+=`<div class="src-card">
       <div class="src-name">${s.name}</div>
       <div class="src-n" style="color:${s.color}">${n}</div>
@@ -789,53 +638,357 @@ function processData(rows) {
     </div>`;
   });
 
+  // KW bars
   const kwSorted=Object.entries(kwCounter).sort((a,b)=>b[1]-a[1]).slice(0,16);
   const kwColors={"Violence":"#f87171","Meurtre":"#f87171","Arme":"#fb923c","Autorisation":"#818cf8","Couteau":"#fb923c","Vente":"#34d399","Injure":"#f87171","Militaire":"#818cf8","Religieux":"#fb923c","Groupe":"#22d3ee","Vol":"#4a5880","Taxe":"#34d399","Ivresse":"#fb923c","Fraude":"#4a5880","Ivrognerie":"#fb923c","Sans mots-clés":"#374151"};
   document.getElementById('kw-bars').innerHTML=kwSorted.map(([k,n])=>`<div class="hbar"><span class="hbar-lbl">${k}</span><div class="hbar-track"><div class="hbar-fill" style="width:${Math.round(n/kwSorted[0][1]*100)}%;background:${kwColors[k]||'#818cf8'}"></div></div><span class="hbar-n">${n}</span></div>`).join('');
 
+  // Lieux
   const lieuxS=Object.entries(locCounter).sort((a,b)=>b[1]-a[1]).slice(0,12);
   const maxL=lieuxS[0]?.[1]||1;
   document.getElementById('lieu-bars').innerHTML=lieuxS.map(([l,n])=>`<div class="hbar"><span class="hbar-lbl">${l}</span><div class="hbar-track"><div class="hbar-fill" style="width:${Math.round(n/maxL*100)}%;background:#818cf8"></div></div><span class="hbar-n">${n}</span></div>`).join('');
 
+  // Stats
   document.getElementById('stats-table').innerHTML=`
-    <div class="stat-row"><span class="stat-lbl">Fond majoritaire</span><span class="stat-val">ADN <span class="pill pill-v">${Math.round((archiveCounter["ADN"]||0)/total*100)}%</span></span></div>
+    <div class="stat-row"><span class="stat-lbl">Fond majoritaire</span><span class="stat-val">ADN <span class="pill pill-v">${Math.round((archiveCounter["ADN"]||0)/rows.length*100)}%</span></span></div>
     <div class="stat-row"><span class="stat-lbl">Décennie record</span><span class="stat-val">1690s <span class="pill pill-r">${decadeTotal[1690]||0} docs</span></span></div>
     <div class="stat-row"><span class="stat-lbl">Arme principale</span><span class="stat-val">Couteau <span class="pill pill-o">×${couteau}</span></span></div>
     <div class="stat-row"><span class="stat-lbl">Ville n°1</span><span class="stat-val">Lille <span class="pill pill-v">${locCounter["Lille"]||0}×</span></span></div>
-    <div class="stat-row"><span class="stat-lbl">Ivresse + ivrognerie</span><span class="stat-val"><span class="pill pill-o">${(kwCounter["Ivresse"]||0)+(kwCounter["Ivrognerie"]||0)} affaires</span></span></div>
-    <div class="stat-row"><span class="stat-lbl">Militaires impliqués</span><span class="stat-val"><span class="pill pill-r">${kwCounter["Militaire"]||0} affaires</span></span></div>
-    <div class="stat-row"><span class="stat-lbl">Archives à traiter</span><span class="stat-val"><span class="pill pill-o">${afaire} restantes</span></span></div>
+    <div class="stat-row"><span class="stat-lbl">Ivresse total</span><span class="stat-val"><span class="pill pill-o">${(kwCounter["Ivresse"]||0)+(kwCounter["Ivrognerie"]||0)} affaires</span></span></div>
+    <div class="stat-row"><span class="stat-lbl">Militaires</span><span class="stat-val"><span class="pill pill-r">${kwCounter["Militaire"]||0} affaires</span></span></div>
+    <div class="stat-row"><span class="stat-lbl">À traiter</span><span class="stat-val"><span class="pill pill-o">${afaire} restantes</span></span></div>
     <div class="stat-row"><span class="stat-lbl">Sans mots-clés</span><span class="stat-val"><span class="pill pill-m">${kwCounter["Sans mots-clés"]||0} entrées</span></span></div>
   `;
 
-  buildCharts(decadeTotal,decadeViol,kwCounter,total);
+  buildCharts(decadeTotal,decadeViol,kwCounter,rows.length);
   document.getElementById('loading').style.display='none';
   document.getElementById('tab-dashboard').classList.add('active');
+  initSearch();
 }
 
-function buildCharts(decT,decV,kwC,total) {
+// ═══════════════ CHARTS ═══════════════
+function buildCharts(decT,decV,kwC,total){
   const decKeys=[1590,1600,1610,1620,1630,1650,1660,1670,1680,1690,1700,1710];
   const labels=['1590s','1600s','1610s','1620s','1630s','1650s','1660s','1670s','1680s','1690s','1700s','1710s'];
-  const g='rgba(255,255,255,0.05)'; const t='#4a5880';
+  const g='rgba(255,255,255,0.05)', t='#4a5880';
   ['decade','themes','violence','moeurs'].forEach(k=>{if(charts[k])charts[k].destroy();});
 
   charts.decade=new Chart(document.getElementById('chart-decade'),{type:'bar',data:{labels,datasets:[
-    {label:'Total',data:decKeys.map(d=>decT[d]||0),backgroundColor:'#818cf8',borderRadius:4,borderSkipped:false},
-    {label:'Violence',data:decKeys.map(d=>decV[d]||0),backgroundColor:'#f87171',borderRadius:4,borderSkipped:false}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:t,font:{size:10}},grid:{color:g},border:{color:'transparent'}},y:{ticks:{color:t,font:{size:10}},grid:{color:g},border:{color:'transparent'},beginAtZero:true}}}});
+    {label:'Total',data:decKeys.map(d=>decT[d]||0),backgroundColor:'#818cf8',borderRadius:3,borderSkipped:false},
+    {label:'Violence',data:decKeys.map(d=>decV[d]||0),backgroundColor:'#f87171',borderRadius:3,borderSkipped:false}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:t,font:{size:9}},grid:{color:g},border:{color:'transparent'}},y:{ticks:{color:t,font:{size:9}},grid:{color:g},border:{color:'transparent'},beginAtZero:true}}}});
 
   const vT=(kwC["Violence"]||0)+(kwC["Meurtre"]||0)+(kwC["Arme"]||0)+(kwC["Couteau"]||0)+(kwC["Injure"]||0)+(kwC["Bagarre"]||0)+(kwC["Agression"]||0);
   const jT=(kwC["Vente"]||0)+(kwC["Achat"]||0)+(kwC["Contrat"]||0)+(kwC["Accord"]||0)+(kwC["Fraude"]||0)+(kwC["Vol"]||0)+(kwC["Escroquerie"]||0)+(kwC["Autorisation"]||0);
   const rT=(kwC["Taxe"]||0)+(kwC["Impôts"]||0)+(kwC["Réglementation"]||0)+(kwC["Ordonnance"]||0)+(kwC["Amende"]||0);
   const mT=(kwC["Religieux"]||0)+(kwC["Ivresse"]||0)+(kwC["Jeu"]||0)+(kwC["Prostitution"]||0)+(kwC["Religion"]||0)+(kwC["Ivrognerie"]||0);
   const aT=Math.max(0,total-vT-jT-rT-mT);
-  charts.themes=new Chart(document.getElementById('chart-themes'),{type:'doughnut',data:{labels:['Violence','Juridique','Réglementation','Religion','Autre'],datasets:[{data:[vT,jT,rT,mT,aT],backgroundColor:['#f87171','#818cf8','#34d399','#fb923c','#374151'],borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'68%'}});
+  charts.themes=new Chart(document.getElementById('chart-themes'),{type:'doughnut',data:{labels:['Violence','Juridique','Réglementation','Religion','Autre'],datasets:[{data:[vT,jT,rT,mT,aT],backgroundColor:['#f87171','#818cf8','#34d399','#fb923c','#374151'],borderWidth:0,hoverOffset:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'68%'}});
 
-  charts.violence=new Chart(document.getElementById('chart-violence'),{type:'bar',data:{labels:['Meurtre','Arme','Couteau','Injure','Militaire','Groupe','Ivresse','Bagarre','Effraction'],datasets:[{data:['Meurtre','Arme','Couteau','Injure','Militaire','Groupe','Ivresse','Bagarre','Effraction'].map(k=>kwC[k]||0),backgroundColor:'#f87171',borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:t,font:{size:10}},grid:{color:g},border:{color:'transparent'},beginAtZero:true},y:{ticks:{color:t,font:{size:11}},grid:{display:false},border:{color:'transparent'}}}}});
+  const vKeys=['Meurtre','Arme','Couteau','Injure','Militaire','Groupe','Ivresse','Bagarre','Effraction'];
+  charts.violence=new Chart(document.getElementById('chart-violence'),{type:'bar',data:{labels:vKeys,datasets:[{data:vKeys.map(k=>kwC[k]||0),backgroundColor:'#f87171',borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:t,font:{size:9}},grid:{color:g},border:{color:'transparent'},beginAtZero:true},y:{ticks:{color:t,font:{size:10}},grid:{display:false},border:{color:'transparent'}}}}});
 
-  charts.moeurs=new Chart(document.getElementById('chart-moeurs'),{type:'bar',data:{labels:['Religieux','Ivresse','Ivrognerie','Jeu','Prostitution','Religion','Duel','Fête','Addiction'],datasets:[{data:['Religieux','Ivresse','Ivrognerie','Jeu','Prostitution','Religion','Duel','Fête','Addiction'].map(k=>kwC[k]||0),backgroundColor:'#fb923c',borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:t,font:{size:10}},grid:{color:g},border:{color:'transparent'},beginAtZero:true},y:{ticks:{color:t,font:{size:11}},grid:{display:false},border:{color:'transparent'}}}}});
+  const mKeys=['Religieux','Ivresse','Ivrognerie','Jeu','Prostitution','Religion','Duel','Fête','Addiction'];
+  charts.moeurs=new Chart(document.getElementById('chart-moeurs'),{type:'bar',data:{labels:mKeys,datasets:[{data:mKeys.map(k=>kwC[k]||0),backgroundColor:'#fb923c',borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:t,font:{size:9}},grid:{color:g},border:{color:'transparent'},beginAtZero:true},y:{ticks:{color:t,font:{size:10}},grid:{display:false},border:{color:'transparent'}}}}});
 }
 
+// ═══════════════ TIMELINE ═══════════════
+// ═══════════════ TIMELINE ═══════════════
+const DECADES = [1590,1600,1610,1620,1630,1640,1650,1660,1670,1680,1690,1700,1710];
+let activeThemes = new Set(['v','j','f','m','r','g','a']);
+let openDecs = new Set([1680,1690,1700,1710]);
+
+function tlTheme(kws, etat) {
+  const k = (kws||'').toLowerCase();
+  if (/violence|meurtre|arme|couteau|bagarre|agression|duel|militaire|injure|effraction/.test(k)) return 'v';
+  if (/taxe|impôts|fraude|amende|inspection|finances/.test(k)) return 'f';
+  if (/autorisation|réglementation|ordonnance|interdiction|exemption/.test(k)) return 'r';
+  if (/vente|achat|contrat|accord|bail|construction|opposition|escroquerie|location/.test(k)) return 'j';
+  if (/religieux|religion|ivresse|ivrognerie|jeu|prostitution|fête|addiction/.test(k)) return 'm';
+  return 'g';
+}
+const TL_COL = {v:'#f87171',j:'#818cf8',f:'#34d399',m:'#fb923c',r:'#22d3ee',g:'#4a5880'};
+const TL_LBL = {v:'Violence',j:'Juridique',f:'Fiscalité',m:'Mœurs',r:'Réglementation',g:'Autre'};
+
+function toggleTheme(t, el) {
+  if (activeThemes.has(t)) { activeThemes.delete(t); el.classList.remove('active'); }
+  else { activeThemes.add(t); el.classList.add('active'); }
+  renderTimeline();
+}
+function toggleDec(dec) {
+  if (openDecs.has(dec)) openDecs.delete(dec);
+  else openDecs.add(dec);
+  renderTimeline();
+}
+
+function buildTimeline() { renderTimeline(); }
+
+function renderTimeline() {
+  const el = document.getElementById('timeline-content');
+  el.innerHTML = '';
+  let total = 0;
+
+  const byDec = {};
+  globalRows.forEach(r => {
+    const yr = parseInt((r[5]||r[4]||'').trim());
+    if (isNaN(yr)) return;
+    const kws   = (r[3]||'').trim();
+    const afaire = (r[2]||'').toLowerCase() === 'a faire';
+    const theme  = tlTheme(kws);
+    if (!activeThemes.has(theme)) return;
+    if (afaire && !activeThemes.has('a')) return;
+    if (!afaire && theme === 'g' && !activeThemes.has('g')) return;
+    const dec = Math.floor(yr/10)*10;
+    if (!byDec[dec]) byDec[dec] = [];
+    byDec[dec].push({r, yr, kws, theme, afaire, lieu:(r[7]||'').trim(), resume:(r[6]||'').trim()});
+    total++;
+  });
+
+  document.getElementById('tl-count').textContent = total + ' archive' + (total>1?'s':'') + ' affichée' + (total>1?'s':'');
+
+  DECADES.forEach(dec => {
+    const items = byDec[dec] || [];
+    if (!items.length) return;
+    const isOpen = openDecs.has(dec);
+
+    // Mini dots de couleur dans l'entête
+    const dotCounts = {};
+    items.forEach(i => { dotCounts[i.theme] = (dotCounts[i.theme]||0)+1; });
+    const miniDots = Object.entries(dotCounts).map(([t,n]) =>
+      `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${TL_COL[t]};flex-shrink:0" title="${TL_LBL[t]}: ${n}"></span>`
+    ).join('');
+
+    const vCount = items.filter(i=>i.theme==='v').length;
+    const vBadge = vCount > 0
+      ? `<span style="font-size:10px;background:rgba(248,113,113,.15);color:#f87171;border-radius:10px;padding:1px 7px;font-weight:500">${vCount} violence${vCount>1?'s':''}</span>`
+      : '';
+
+    el.innerHTML += `
+      <div style="margin-bottom:4px">
+        <div onclick="toggleDec(${dec})" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer;background:var(--surface);border:1px solid var(--border);user-select:none;transition:background .12s" onmouseover="this.style.background='var(--card)'" onmouseout="this.style.background='var(--surface)'">
+          <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:var(--violet);min-width:48px">${dec}s</span>
+          <span style="font-size:12px;color:var(--muted2)">${items.length} archive${items.length>1?'s':''}</span>
+          <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">${miniDots}</div>
+          ${vBadge}
+          <span style="margin-left:auto;font-size:11px;color:var(--muted);transition:transform .15s;display:inline-block;transform:rotate(${isOpen?90:0}deg)">▶</span>
+        </div>
+        ${isOpen ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 0 12px 16px">
+          ${items.map(({r,yr,kws,theme,afaire,lieu,resume}) => {
+            const color = TL_COL[theme];
+            const kwTags = kws
+              ? kws.split(' - ').slice(0,3).filter(Boolean).map(k =>
+                  `<span class="kw-tag" style="background:${color}22;color:${color}">${k.trim()}</span>`
+                ).join('')
+              : `<span class="kw-tag" style="background:rgba(74,88,128,.2);color:#6b7fa8">Sans mots-clés</span>`;
+            return `
+              <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;border-left:3px solid ${color}">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:4px">
+                  <span style="font-size:11px;font-weight:500;color:var(--muted2)">${r[0]||''} · ${r[1]||''}</span>
+                  <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">
+                    ${afaire?`<span style="font-size:9px;background:rgba(251,146,60,.15);color:#fb923c;border-radius:8px;padding:1px 5px;font-weight:500">À faire</span>`:''}
+                    <span style="font-size:11px;color:var(--violet);font-weight:500">${yr}</span>
+                  </div>
+                </div>
+                ${resume?`<div style="font-size:12px;color:var(--white);line-height:1.5;margin-bottom:5px">${resume}</div>`:''}
+                ${lieu?`<div style="font-size:11px;color:var(--muted2);margin-bottom:4px">📍 ${lieu}</div>`:''}
+                <div style="display:flex;gap:3px;flex-wrap:wrap">${kwTags}</div>
+              </div>`;
+          }).join('')}
+        </div>` : ''}
+      </div>`;
+  });
+
+  if (!total) el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted2)">Aucune archive pour ces filtres</div>';
+}
+
+// ═══════════════ SEARCH ═══════════════
+let activeFilters=new Set();
+function initSearch(){
+  const filtersEl=document.getElementById('search-filters');
+  if(filtersEl.innerHTML===''){
+    const archives=[...new Set(globalRows.map(r=>r[0]).filter(Boolean))];
+    filtersEl.innerHTML=archives.map(a=>`<span class="filter-btn" onclick="toggleFilter('${a}',this)">${a}</span>`).join('');
+  }
+  doSearch();
+}
+function toggleFilter(f,el){
+  if(activeFilters.has(f)) activeFilters.delete(f);
+  else activeFilters.add(f);
+  el.classList.toggle('active');
+  doSearch();
+}
+function clearSearch(){ document.getElementById('search-input').value=''; activeFilters.clear(); document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active')); doSearch(); }
+
+function doSearch(){
+  const q=(document.getElementById('search-input')?.value||"").toLowerCase().trim();
+  const kwColors={"violence":"#f87171","meurtre":"#f87171","arme":"#fb923c","autorisation":"#818cf8","couteau":"#fb923c","vente":"#34d399","injure":"#f87171","militaire":"#818cf8","religieux":"#fb923c","vol":"#4a5880","taxe":"#34d399","ivresse":"#fb923c","fraude":"#4a5880"};
+
+  const filtered=globalRows.filter(r=>{
+    const arch=(r[0]||"").toLowerCase(), kws=(r[3]||"").toLowerCase();
+    const lieu=(r[7]||"").toLowerCase(), res=(r[6]||"").toLowerCase();
+    const cote=(r[1]||"").toLowerCase();
+    if(activeFilters.size>0 && !activeFilters.has(r[0]||"")) return false;
+    if(!q) return true;
+    return arch.includes(q)||kws.includes(q)||lieu.includes(q)||res.includes(q)||cote.includes(q);
+  });
+
+  const cnt=document.getElementById('results-count');
+  if(cnt) cnt.textContent=`${filtered.length} archive${filtered.length>1?'s':''} trouvée${filtered.length>1?'s':''}`;
+
+  const tbody=document.getElementById('search-results');
+  if(!tbody) return;
+  tbody.innerHTML=filtered.length===0
+    ? `<tr><td colspan="7" class="no-results">Aucun résultat</td></tr>`
+    : filtered.map(r=>{
+        const kws=(r[3]||"");
+        const tags=kws?kws.split(' - ').map(k=>{const kl=k.trim().toLowerCase(); const c=kwColors[kl]||'#818cf8'; return `<span class="kw-tag" style="background:${c}22;color:${c}">${k.trim()}</span>`;}).join(''):'—';
+        const etat=(r[2]||"").toLowerCase()==="a faire"?'<span class="pill pill-o">À faire</span>':'<span class="pill pill-g">Fait</span>';
+        return `<tr>
+          <td><strong>${r[0]||"—"}</strong></td>
+          <td style="color:var(--muted2);font-size:11px">${r[1]||"—"}</td>
+          <td>${etat}</td>
+          <td>${tags||'—'}</td>
+          <td style="color:var(--violet)">${r[5]||r[4]||"—"}</td>
+          <td style="color:var(--muted2)">${r[7]||"—"}</td>
+          <td style="color:var(--muted2);font-size:11px">${r[6]||"—"}</td>
+        </tr>`;
+      }).join('');
+}
+
+// ═══════════════ DETAILS TAB ═══════════════
+function buildDetailsTab(){
+  const el=document.getElementById('details-content');
+  el.innerHTML="";
+  const totalKw=Object.values(globalKwCounter).reduce((a,b)=>a+b,0);
+  const allCat=new Set(Object.values(THEMES).flatMap(t=>t.keys.map(k=>k.toLowerCase())));
+
+  Object.entries(THEMES).forEach(([name,theme])=>{
+    const terms=theme.keys.map(k=>({key:k,n:globalKwCounter[k]||0})).filter(t=>t.n>0).sort((a,b)=>b.n-a.n);
+    if(!terms.length) return;
+    const tot=terms.reduce((a,b)=>a+b.n,0);
+    const pct=totalKw?Math.round(tot/totalKw*100):0;
+    const maxN=terms[0].n||1;
+    el.innerHTML+=`<div class="theme-section">
+      <div class="theme-header">
+        <div class="theme-color-bar" style="background:${theme.color}"></div>
+        <div class="theme-name">${name}</div>
+        <div class="theme-total-lbl">${tot} occurrences</div>
+        <span class="theme-pct-badge" style="background:${theme.color}22;color:${theme.color}">${pct}%</span>
+      </div>
+      <div class="terms-grid">${terms.map(t=>`<div class="term-card"><div class="term-top"><span class="term-name">${t.key}</span><span class="term-n" style="color:${theme.color}">${t.n}</span></div><div class="term-bar-wrap"><div class="term-bar" style="width:${Math.round(t.n/maxN*100)}%;background:${theme.color}"></div></div></div>`).join('')}</div>
+    </div>`;
+  });
+
+  const unc=Object.entries(globalKwCounter).filter(([k])=>!allCat.has(k.toLowerCase())).sort((a,b)=>b[1]-a[1]);
+  if(unc.length){
+    const maxN=unc[0][1]||1;
+    el.innerHTML+=`<div class="theme-section"><div class="theme-header"><div class="theme-color-bar" style="background:#22d3ee"></div><div class="theme-name">Autres termes</div><div class="theme-total-lbl">${unc.length} termes distincts</div></div><div class="terms-grid">${unc.map(([k,n])=>`<div class="term-card"><div class="term-top"><span class="term-name">${k}</span><span class="term-n" style="color:#22d3ee">${n}</span></div><div class="term-bar-wrap"><div class="term-bar" style="width:${Math.round(n/maxN*100)}%;background:#22d3ee"></div></div></div>`).join('')}</div></div>`;
+  }
+}
+
+// ═══════════════ ANALYSE IA ═══════════════
+let lastAnalyseData=null;
+
+async function buildAnalyseTab(){
+  if(analyseGenerated&&lastAnalyseTotal===globalTotal){ if(lastAnalyseData) renderAnalyse(document.getElementById('tab-analyse').querySelector('.wrap'),lastAnalyseData); return; }
+  const container=document.getElementById('tab-analyse');
+  const wrap=container.querySelector('.wrap');
+  wrap.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:20px;"><div class="spinner"></div><div style="font-size:14px;color:var(--muted2)">Claude analyse votre corpus…</div><div style="font-size:12px;color:var(--muted);max-width:400px;text-align:center">Génération d'une analyse historiographique basée sur <strong style="color:var(--white)">${globalTotal}</strong> archives</div></div>`;
+
+  const kw=globalKwCounter;
+  const top20=Object.entries(kw).sort((a,b)=>b[1]-a[1]).slice(0,20).map(([k,n])=>`${k}: ${n}`).join(', ');
+  const topL=Object.entries(globalLocCounter).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([l,n])=>`${l}: ${n}`).join(', ');
+  const decs=[1590,1600,1610,1620,1630,1650,1660,1670,1680,1690,1700,1710].map(d=>`${d}s: ${globalDecTotal[d]||0} (${globalDecViol[d]||0} violents)`).join(' | ');
+
+  const prompt=`Tu es un historien spécialisé dans l'histoire sociale de la France et des Pays-Bas méridionaux à l'époque moderne. Tu aides Valère Fourreau, étudiant en master d'histoire publique, dont le mémoire porte sur les débits de boisson en Flandre au XVIIe siècle.
+
+Données du corpus (${globalTotal} archives, 1592-1715, fonds ADN/AML/AMArmentières) :
+- ADN: ${globalArchiveCounter["ADN"]||0} | AML: ${globalArchiveCounter["AML"]||0} | AMArm: ${globalArchiveCounter["AMArmentières"]||0}
+- Mots-clés: ${top20}
+- Villes: ${topL}
+- Chronologie: ${decs}
+- Violence: ${kw["Violence"]||0} (${Math.round((kw["Violence"]||0)/globalTotal*100)}%) | Meurtre: ${kw["Meurtre"]||0} | Arme: ${kw["Arme"]||0} | Couteau: ${kw["Couteau"]||0}
+- Militaire: ${kw["Militaire"]||0} | Autorisation: ${kw["Autorisation"]||0} | Fraude: ${kw["Fraude"]||0} | Taxe: ${kw["Taxe"]||0}
+- Ivresse: ${kw["Ivresse"]||0} | Ivrognerie: ${kw["Ivrognerie"]||0} | Prostitution: ${kw["Prostitution"]||0} | Jeu: ${kw["Jeu"]||0}
+
+Rédige une analyse historiographique en 4 axes. Utilise **texte en gras** (balises HTML <strong>) pour mettre en valeur les chiffres clés, concepts importants et termes historiographiques. Chaque paragraphe doit être dense, argumenté et référencer les données chiffrées exactes.
+
+Réponds UNIQUEMENT en JSON valide, sans backticks ni markdown :
+{"intro":"introduction générale 2-3 phrases avec <strong> sur les chiffres clés","axes":[{"num":"I","titre":"titre académique précis","soustitre":"sous-titre court","couleur":"#f87171","stats":["stat avec chiffre exact","stat 2","stat 3"],"paragraphes":["paragraphe dense avec <strong>chiffres</strong> et <strong>concepts</strong>","paragraphe 2","paragraphe 3"],"citation":"formule ou citation d'archive pertinente","source":"référence archivistique"},{"num":"II","couleur":"#818cf8",...},{"num":"III","couleur":"#fb923c",...},{"num":"IV","couleur":"#22d3ee",...}],"synthese":["paragraphe 1 avec <strong>tensions structurelles</strong>","paragraphe 2","paragraphe 3"]}`;
+
+  try{
+    const response=await fetch(WORKER_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-opus-4-5",max_tokens:4000,messages:[{role:"user",content:prompt}]})});
+    const rawText=await response.text();
+    let data; try{data=JSON.parse(rawText);}catch(e){throw new Error("Réponse non-JSON : "+rawText.slice(0,200));}
+    if(!data.content) throw new Error("Erreur API : "+JSON.stringify(data).slice(0,300));
+    const text=data.content.map(i=>i.text||"").join("");
+    let parsed;
+    try{
+      const clean=text.replace(/```json[\s\S]*?```|```/g,"").trim();
+      const m=clean.match(/\{[\s\S]*\}/);
+      if(!m) throw new Error("Aucun JSON trouvé");
+      parsed=JSON.parse(m[0]);
+      if(!parsed.axes||!Array.isArray(parsed.axes)) throw new Error("Clé axes manquante");
+    }catch(e){ throw new Error("Parsing : "+e.message); }
+    lastAnalyseData=parsed;
+    renderAnalyse(wrap,parsed);
+    analyseGenerated=true;
+    lastAnalyseTotal=globalTotal;
+  }catch(e){
+    console.error("Erreur Claude :",e);
+    wrap.innerHTML=`<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;text-align:center;"><div style="font-size:14px;color:var(--red);margin-bottom:12px">Erreur de génération</div><div style="font-size:13px;color:var(--muted2);margin-bottom:16px">${e.message}</div><button class="btn" onclick="analyseGenerated=false;buildAnalyseTab()">↻ Réessayer</button></div>`;
+  }
+}
+
+function renderAnalyse(wrap,data){
+  const axeColors=["#f87171","#818cf8","#fb923c","#22d3ee"];
+  const axeNumBg=["rgba(248,113,113,.15)","rgba(129,140,248,.15)","rgba(251,146,60,.15)","rgba(34,211,238,.15)"];
+
+  const axesHTML=(data.axes||[]).map((axe,i)=>{
+    const color=axe.couleur||axeColors[i]||"#818cf8";
+    const numBg=axeNumBg[i]||"rgba(129,140,248,.15)";
+    return `<div class="axe-card">
+      <div class="axe-header">
+        <div class="axe-num" style="background:${numBg};color:${color}">${axe.num}</div>
+        <div><div class="axe-title">${axe.titre}</div><div class="axe-subtitle">${axe.soustitre||""}</div></div>
+      </div>
+      <div class="axe-stats">${(axe.stats||[]).map(s=>`<span class="axe-stat" style="background:${color}22;color:${color}">${s}</span>`).join('')}</div>
+      <div class="axe-body">${(axe.paragraphes||[]).map(p=>`<p>${p}</p>`).join('')}${axe.citation?`<div class="axe-quote">${axe.citation}<cite>${axe.source||""}</cite></div>`:""}</div>
+    </div>`;
+  }).join('');
+
+  const topKw=Object.entries(globalKwCounter).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,n])=>`${k} (${n})`).join(' · ');
+  wrap.innerHTML=`
+    <div class="analyse-intro">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+        <div class="analyse-intro-title">Analyse historiographique du corpus</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn" onclick="analyseGenerated=false;buildAnalyseTab()">↻ Régénérer</button>
+          <button class="btn btn-primary" onclick="exportPDF()">⬇ Exporter PDF</button>
+        </div>
+      </div>
+      <div class="analyse-intro-sub">${data.intro||""}</div>
+      <div class="analyse-meta">
+        <span class="analyse-meta-tag" style="background:rgba(129,140,248,.15);color:#818cf8">Master Histoire Publique</span>
+        <span class="analyse-meta-tag" style="background:rgba(52,211,153,.15);color:#34d399">Flandres · XVIIe siècle</span>
+        <span class="analyse-meta-tag" style="background:rgba(251,146,60,.15);color:#fb923c">Débits de boisson</span>
+        <span class="analyse-meta-tag" style="background:rgba(74,88,128,.3);color:#6b7fa8">Corpus : ${globalTotal} archives · ${new Date().toLocaleTimeString('fr-FR')}</span>
+      </div>
+    </div>
+    <div class="axes-grid">${axesHTML}</div>
+    <div class="conclusion-card">
+      <div class="conclusion-title"><span style="width:4px;height:22px;background:linear-gradient(180deg,#818cf8,#34d399);border-radius:2px;display:inline-block"></span>Synthèse et perspectives</div>
+      <div class="conclusion-body">${(data.synthese||[]).map(p=>`<p>${p}</p>`).join('')}</div>
+    </div>
+    <div class="sources-note"><strong>Sources :</strong> ${globalTotal} archives — ADN (${globalArchiveCounter["ADN"]||0}) · AML (${globalArchiveCounter["AML"]||0}) · AMArmentières (${globalArchiveCounter["AMArmentières"]||0}). Termes : ${topKw}. Analyse générée par IA le ${new Date().toLocaleString('fr-FR')} — données collectées par <strong>Valère Fourreau</strong>.</div>`;
+}
+
+// ═══════════════ PDF EXPORT ═══════════════
+function exportPDF(){
+  window.print();
+}
+
+// ═══════════════ INIT ═══════════════
 loadData();
 </script>
 </body>
