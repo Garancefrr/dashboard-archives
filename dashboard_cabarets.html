@@ -498,6 +498,12 @@ const THEMES = {
 function enterDash(){
   document.getElementById('splash').classList.add('hide');
   setTimeout(()=>document.getElementById('splash').style.display='none',700);
+  // Déclencher l'auth après la fermeture du splash
+  if(!_googleIdToken){
+    showAuthModal();
+  } else {
+    loadData();
+  }
 }
 setTimeout(()=>{ if(document.getElementById('splash').style.display!=='none') enterDash(); },3500);
 
