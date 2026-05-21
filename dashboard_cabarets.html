@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Archives Cabarets & Tavernes — Valère Fourreau</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
@@ -476,7 +477,7 @@ footer{margin-top:28px;padding:18px 24px;background:var(--surface);border-top:1p
 <script>
 // ═══════════════ CONFIG ═══════════════
 const SHEET_ID   = "1KjPmgfqahOIMoN9gjOSlK66AilcNPf5fEFNiFS81aEM";
-const API_KEY    = "AIzaSyCFbQb-wJ_AC0tuARqDCa-530GBWSbf2j0";
+const API_KEY    = "AIzaSyDPyXLZkOR7nhITYFL6llgkDs2tY0LFsds";
 const RANGE      = "archives!A2:L300";
 const WORKER_URL = "https://archive-dashboard-cabaret.garancefrr.workers.dev/";
 
@@ -1100,7 +1101,383 @@ function exportPDF(){
 }
 
 // ═══════════════ INIT ═══════════════
-loadData();
+/**
+ * ═══════════════════════════════════════════════════════════════
+ *  PATCH DE SÉCURITÉ — dashboard_cabarets.html
+ *  À intégrer dans ton fichier HTML, dans la section <head>
+ *  AVANT ton propre <script> principal
+ * ═══════════════════════════════════════════════════════════════
+ *
+ *  ÉTAPE 1 : Ajoute ce script en haut du <head> :
+ *
+ *  <script src="https://accounts.google.com/gsi/client" async defer></script>
+ *
+ *  ÉTAPE 2 : Remplace dans ton CONFIG :
+ *    const API_KEY  = "AIzaSy..."   →  SUPPRIMER (la clé est maintenant dans le Worker)
+ *    const WORKER_URL = "..."       →  garder tel quel
+ *
+ *  ÉTAPE 3 : Colle TOUT ce bloc <script> juste avant la fermeture </body>
+ *  (il remplace/surcharge les fonctions loadData et buildAnalyseTab)
+ * ═══════════════════════════════════════════════════════════════
+ */
+
+
+// ── CONFIGURATION ──────────────────────────────────────────────
+// ⚠️  Remplace par ton vrai Client ID Google OAuth
+//     Console Google → APIs & Services → Credentials → OAuth 2.0 Client IDs
+const GOOGLE_CLIENT_ID = "833324292187-gbifipe71ot9etv4et14bv0isjs771th.apps.googleusercontent.com";
+
+// Ton Worker Cloudflare (déjà dans ton code, on le réutilise)
+const WORKER_BASE = "https://archive-dashboard-cabaret.garancefrr.workers.dev";
+
+// ── STATE AUTH ─────────────────────────────────────────────────
+let _googleIdToken = null;  // token Google de l'utilisateur connecté
+let _userEmail     = null;
+
+// ═══════════════════════════════════════════════════════════════
+//  INITIALISATION GOOGLE SIGN-IN (One Tap)
+// ═══════════════════════════════════════════════════════════════
+function initGoogleAuth() {
+  if (!window.google) {
+    setTimeout(initGoogleAuth, 300);
+    return;
+  }
+
+  google.accounts.id.initialize({
+    client_id:         GOOGLE_CLIENT_ID,
+    callback:          onGoogleSignIn,
+    auto_select:       true,   // reconnexion auto si déjà connecté
+    cancel_on_tap_outside: false,
+  });
+
+  // Afficher le bouton One Tap + le bouton classique
+  google.accounts.id.renderButton(
+    document.getElementById("google-signin-btn"),
+    { theme: "filled_blue", size: "large", text: "signin_with", shape: "pill", locale: "fr" }
+  );
+
+  // Déclencher le One Tap (popup automatique)
+  google.accounts.id.prompt();
+}
+
+// Callback appelé quand l'utilisateur se connecte
+function onGoogleSignIn(response) {
+  _googleIdToken = response.credential;
+
+  // Décoder le JWT pour afficher l'email (sans vérification, juste l'UI)
+  try {
+    const payload = JSON.parse(atob(_googleIdToken.split(".")[1]));
+    _userEmail = payload.email;
+    const name  = payload.name || payload.email;
+    updateAuthUI(name);
+  } catch { updateAuthUI("Connecté"); }
+
+  // Cacher le modal d'auth si présent
+  const modal = document.getElementById("auth-modal");
+  if (modal) modal.style.display = "none";
+
+  // Charger les données maintenant que l'utilisateur est authentifié
+  loadData();
+}
+
+// Met à jour la topbar avec l'info utilisateur
+function updateAuthUI(name) {
+  const badge = document.getElementById("auth-badge");
+  if (badge) {
+    badge.textContent = "✓ " + name;
+    badge.style.borderColor = "var(--green)";
+    badge.style.color       = "var(--green)";
+  }
+  // Afficher le bouton de déconnexion
+  const signoutBtn = document.getElementById("signout-btn");
+  if (signoutBtn) signoutBtn.style.display = "inline-flex";
+}
+
+// Déconnexion
+function signOut() {
+  google.accounts.id.disableAutoSelect();
+  _googleIdToken = null;
+  _userEmail     = null;
+
+  const badge = document.getElementById("auth-badge");
+  if (badge) { badge.textContent = "Non connecté"; badge.style.borderColor = ""; badge.style.color = ""; }
+
+  const signoutBtn = document.getElementById("signout-btn");
+  if (signoutBtn) signoutBtn.style.display = "none";
+
+  showAuthModal();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MODAL D'AUTHENTIFICATION (affiché si non connecté)
+// ═══════════════════════════════════════════════════════════════
+function injectAuthElements() {
+  // 1. Badge auth dans la topbar
+  const topbarRight = document.querySelector(".topbar-right");
+  if (topbarRight) {
+    // Badge utilisateur
+    const badge = document.createElement("div");
+    badge.className = "badge";
+    badge.id = "auth-badge";
+    badge.textContent = "Non connecté";
+    topbarRight.insertBefore(badge, topbarRight.firstChild);
+
+    // Bouton déconnexion
+    const signoutBtn = document.createElement("button");
+    signoutBtn.className = "btn";
+    signoutBtn.id = "signout-btn";
+    signoutBtn.textContent = "Déconnexion";
+    signoutBtn.style.display = "none";
+    signoutBtn.onclick = signOut;
+    topbarRight.insertBefore(signoutBtn, topbarRight.firstChild);
+  }
+
+  // 2. Modal d'auth (overlay)
+  const modal = document.createElement("div");
+  modal.id = "auth-modal";
+  modal.style.cssText = `
+    position:fixed;inset:0;background:rgba(10,13,20,.95);z-index:2000;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+  `;
+  modal.innerHTML = `
+    <div style="font-size:40px">🔐</div>
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:#e8edf8;text-align:center">
+      Accès sécurisé
+    </div>
+    <div style="font-size:13px;color:#6b7fa8;text-align:center;max-width:360px;line-height:1.7">
+      Ce dashboard est réservé aux utilisateurs autorisés.<br>
+      Connecte-toi avec ton compte Google pour accéder aux données et à l'analyse IA.
+    </div>
+    <div id="google-signin-btn" style="margin-top:8px"></div>
+    <div style="font-size:11px;color:#4a5880;margin-top:4px">
+      Aucune donnée personnelle n'est conservée.
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function showAuthModal() {
+  const modal = document.getElementById("auth-modal");
+  if (modal) modal.style.display = "flex";
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  OVERRIDE : loadData — passe par le Worker (clé cachée)
+// ═══════════════════════════════════════════════════════════════
+async function loadData() {
+  // Si pas encore authentifié, montrer le modal et attendre
+  if (!_googleIdToken) {
+    showAuthModal();
+    return;
+  }
+
+  document.getElementById("last-sync").textContent = "Chargement…";
+
+  try {
+    const res = await fetch(`${WORKER_BASE}/sheets`, {
+      headers: { "Authorization": `Bearer ${_googleIdToken}` }
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      // Token expiré → redemander connexion
+      _googleIdToken = null;
+      showAuthModal();
+      google.accounts.id.prompt();
+      return;
+    }
+
+    if (!res.ok) throw new Error("Erreur Worker " + res.status);
+
+    const json = await res.json();
+    // processData est la fonction de ton code original — on la réutilise
+    processData((json.values || []).filter(r => r[0]));
+    document.getElementById("last-sync").textContent = new Date().toLocaleTimeString("fr-FR");
+    document.getElementById("last-update").textContent =
+      "Dernière synchronisation : " + new Date().toLocaleString("fr-FR");
+
+  } catch (e) {
+    console.warn("Fallback données statiques :", e.message);
+    // loadStaticData est dans ton code original
+    loadStaticData();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  OVERRIDE : buildAnalyseTab — appel IA sécurisé via Worker
+// ═══════════════════════════════════════════════════════════════
+async function buildAnalyseTab() {
+  const wrap = document.querySelector("#tab-analyse .wrap");
+  if (!wrap) return;
+
+  // Si pas authentifié
+  if (!_googleIdToken) {
+    wrap.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;gap:16px;color:var(--muted2);">
+        <div style="font-size:32px">🔐</div>
+        <div style="font-size:13px">Connecte-toi pour accéder à l'analyse IA</div>
+        <div id="google-signin-btn-analyse"></div>
+      </div>`;
+    // Rendre le bouton dans l'onglet aussi
+    if (window.google) {
+      google.accounts.id.renderButton(
+        document.getElementById("google-signin-btn-analyse"),
+        { theme: "filled_blue", size: "medium", text: "signin_with", shape: "pill", locale: "fr" }
+      );
+    }
+    return;
+  }
+
+  // Si déjà générée et corpus inchangé, ne pas régénérer
+  if (analyseGenerated && lastAnalyseTotal === globalTotal) return;
+
+  // Construire le contexte (données agrégées — pas les 100+ lignes brutes)
+  const ctx = buildAnalyseContext();
+
+  wrap.innerHTML = `
+    <div class="analyse-intro">
+      <div class="analyse-intro-title">🧠 Analyse IA du corpus</div>
+      <div class="analyse-intro-sub">Génération en cours — analyse par Claude Sonnet…</div>
+      <div style="margin-top:14px;width:100%;height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+        <div style="height:100%;background:linear-gradient(90deg,var(--violet2),var(--violet));border-radius:2px;animation:load 3s ease-in-out infinite alternate;width:60%"></div>
+      </div>
+    </div>`;
+
+  try {
+    const res = await fetch(`${WORKER_BASE}/analyse`, {
+      method: "POST",
+      headers: {
+        "Content-Type":  "application/json",
+        "Authorization": `Bearer ${_googleIdToken}`,
+      },
+      body: JSON.stringify({
+        userMessage:      buildAnalysePrompt(ctx),
+        archivesContext:  ctx,
+      }),
+    });
+
+    if (res.status === 429) {
+      const err = await res.json();
+      wrap.innerHTML = renderError("⏱️ " + err.error);
+      return;
+    }
+
+    if (res.status === 401 || res.status === 403) {
+      _googleIdToken = null;
+      wrap.innerHTML = renderError("Session expirée. Reconnecte-toi.");
+      showAuthModal();
+      google.accounts.id.prompt();
+      return;
+    }
+
+    if (!res.ok) throw new Error("Worker error " + res.status);
+
+    const data = await res.json();
+    const text = data.result || "";
+
+    // Afficher la réponse formatée
+    wrap.innerHTML = renderAnalyseResult(text, ctx, data.user);
+    analyseGenerated  = true;
+    lastAnalyseTotal  = globalTotal;
+
+  } catch (e) {
+    wrap.innerHTML = renderError("Erreur de connexion au serveur IA : " + e.message);
+  }
+}
+
+// ── Construit le contexte agrégé à envoyer (pas les lignes brutes entières) ──
+function buildAnalyseContext() {
+  const ctx = {
+    totalArchives:  globalTotal,
+    dateRange:      globalRows.length ? `${globalRows[0]?.[4]} – ${globalRows[globalRows.length-1]?.[4]}` : "",
+    themesCounts:   {},
+    topKeywords:    Object.entries(globalKwCounter).sort((a,b)=>b[1]-a[1]).slice(0,15),
+    topLieux:       Object.entries(globalLocCounter).sort((a,b)=>b[1]-a[1]).slice(0,8),
+    fondsCounts:    globalArchiveCounter,
+    decennies:      globalDecTotal,
+    violenceCount:  globalRows.filter(r => (r[3]||"").toLowerCase().includes("violence")).length,
+    meurtreCount:   globalRows.filter(r => (r[3]||"").toLowerCase().includes("meurtre")).length,
+    couteauCount:   globalRows.filter(r => (r[3]||"").toLowerCase().includes("couteau")).length,
+    // Quelques exemples d'archives représentatifs (pas tout le corpus)
+    sampleArchives: globalRows.slice(0,5).map(r => ({
+      fonds: r[0], cote: r[1], mots: r[3], date: r[4], lieu: r[5], resume: r[6]
+    })),
+  };
+
+  // Compter par thème
+  for (const [theme, def] of Object.entries(THEMES)) {
+    ctx.themesCounts[theme] = globalRows.filter(r =>
+      def.keys.some(k => (r[3]||"").includes(k))
+    ).length;
+  }
+
+  return ctx;
+}
+
+// ── Prompt utilisateur structuré ──────────────────────────────
+function buildAnalysePrompt(ctx) {
+  return `Analyse ce corpus d'archives historiques et produis une synthèse structurée en 4 axes :
+
+1. **Violence et criminalité** : nature, évolution temporelle, instruments, acteurs
+2. **Régulation et contrôle** : rôle des autorités, ordonnances, tensions juridictionnelles
+3. **Sociabilité et culture populaire** : pratiques sociales, groupes, lieux
+4. **Évolution chronologique** : tendances sur la période XVIIe–XVIIIe siècle
+
+Données du corpus :
+- Total archives : ${ctx.totalArchives} (${ctx.dateRange})
+- Affaires de violence : ${ctx.violenceCount} (dont homicides : ${ctx.meurtreCount}, couteau : ${ctx.couteauCount})
+- Top mots-clés : ${ctx.topKeywords.slice(0,8).map(([k,v])=>`${k} (${v})`).join(", ")}
+- Principaux fonds : ${JSON.stringify(ctx.fondsCounts)}
+
+Pour chaque axe, cite au moins 2 archives spécifiques du corpus. Conclus avec les perspectives pour le mémoire.`;
+}
+
+// ── Rendu de la réponse IA ────────────────────────────────────
+function renderAnalyseResult(text, ctx, userEmail) {
+  const escaped = text
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>")
+    .replace(/\n\n/g,"</p><p>")
+    .replace(/\n/g,"<br>");
+
+  return `
+    <div class="analyse-intro">
+      <div class="analyse-intro-title">🧠 Analyse du corpus — ${ctx.totalArchives} archives</div>
+      <div class="analyse-intro-sub">${ctx.dateRange} · Cabarets & Tavernes des Flandres</div>
+      <div class="analyse-meta">
+        <span class="analyse-meta-tag" style="background:rgba(129,140,248,.15);color:var(--violet)">Claude Sonnet</span>
+        <span class="analyse-meta-tag" style="background:rgba(52,211,153,.15);color:var(--green)">✓ Authentifié</span>
+        <span class="analyse-meta-tag" style="background:rgba(74,88,128,.2);color:var(--muted2)">${userEmail || ""}</span>
+        <button class="btn" style="margin-left:auto;font-size:11px" onclick="analyseGenerated=false;buildAnalyseTab()">↻ Régénérer</button>
+      </div>
+    </div>
+    <div class="conclusion-card">
+      <div class="conclusion-title">📄 Synthèse historique</div>
+      <div class="conclusion-body"><p>${escaped}</p></div>
+    </div>
+    <div class="sources-note">
+      <strong>Sources</strong> : Corpus archivistique constitué par Valère Fourreau ·
+      Fonds ADN (Archives départementales du Nord) · AML (Archives municipales de Lille) ·
+      AMArmentières · XVIIe–XVIIIe siècle.
+    </div>`;
+}
+
+function renderError(msg) {
+  return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:40vh;gap:12px;color:var(--muted2);">
+    <div style="font-size:28px">⚠️</div>
+    <div style="font-size:13px;text-align:center;max-width:400px">${msg}</div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  DÉMARRAGE
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener("DOMContentLoaded", () => {
+  injectAuthElements();
+  initGoogleAuth();
+  // ⚠️ loadData() sera appelé par onGoogleSignIn une fois connecté
+  // On ne charge pas les données avant auth
+});
+
 </script>
 </body>
 </html>
